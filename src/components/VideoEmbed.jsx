@@ -108,7 +108,7 @@ export default function VideoEmbed({ url }) {
   const isInstagram = video.platform === PLATFORMS.INSTAGRAM
   const isPinterest = video.platform === PLATFORMS.PINTEREST
   const isReel = isInstagram && video.type === 'reel'
-  const igHeight = isReel ? 780 : 650
+  const igHeight = isReel ? 480 : 420
   const pinterestHeight = 500
 
   // Timeout: if iframe doesn't load in 12s, show fallback
