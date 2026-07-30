@@ -262,7 +262,7 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
   const savedTimerRef = useRef(null)
   const checklist = scene.checklist || []
   const doneCount = checklist.filter(c => c.done).length
-  const hasContent = scene.script || scene.camera || scene.location || checklist.length > 0
+  const hasContent = scene.script || scene.camera || scene.cameraAngle || scene.shotType || scene.location || checklist.length > 0
 
   useEffect(() => {
     return () => clearTimeout(savedTimerRef.current)
@@ -273,7 +273,8 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
     onSaveTemplate({
       name,
       script: scene.script,
-      camera: scene.camera,
+      cameraAngle: scene.cameraAngle,
+      shotType: scene.shotType,
       location: scene.location,
       checklist: scene.checklist || []
     })
@@ -339,7 +340,7 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
           {hasContent && (
             <span className="text-[10px] text-text-muted truncate flex items-center gap-1">
               {scene.script && '📝'}
-              {scene.camera && '🎥'}
+              {(scene.cameraAngle || scene.shotType) && '🎥'}
               {scene.location && '📍'}
               {checklist.length > 0 && `✓${doneCount}/${checklist.length}`}
             </span>
@@ -410,14 +411,14 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
           {/* Camera Angle */}
           <div>
             <label className="text-[10px] font-medium text-text-muted mb-1.5 flex items-center gap-1">
-              <span>🎥</span> Camera Angle / Shot Type
+              <span>🎥</span> Camera Angle
             </label>
             <div className="relative">
               <input
                 type="text"
-                list="camera-shot-types"
-                value={scene.camera || ''}
-                onChange={(e) => onUpdate('camera', e.target.value)}
+                list="camera-angles"
+                value={scene.cameraAngle || ''}
+                onChange={(e) => onUpdate('cameraAngle', e.target.value)}
                 placeholder="Select or type camera angle..."
                 className="w-full text-sm bg-surface border border-border rounded-lg px-3 py-2
                            text-text outline-none focus:border-indigo-400 transition-colors
@@ -426,27 +427,94 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 9l6 6 6-6" />
               </svg>
-              <datalist id="camera-shot-types">
-                <option value="Aerial Shot" />
+              <datalist id="camera-angles">
+                <option value="45-Degree Angle" />
+                <option value="Aerial / Top-Down" />
+                <option value="Bird's Eye View" />
+                <option value="Bottom Angle" />
+                <option value="Canted Angle" />
+                <option value="Dutch Angle / Tilted" />
+                <option value="Eye Level" />
+                <option value="Front / Straight Angle" />
+                <option value="Ground Level" />
+                <option value="High Angle" />
+                <option value="Hip Level" />
+                <option value="Low Angle" />
+                <option value="Overhead Shot" />
+                <option value="Profile Shot" />
+                <option value="Rear / Over-the-Back" />
+                <option value="Reverse Angle" />
+                <option value="Shoulder Level" />
+                <option value="Side Angle" />
+                <option value="Three-Quarter Angle" />
+                <option value="Top Angle" />
+                <option value="Worm's Eye View" />
+              </datalist>
+            </div>
+          </div>
+
+          {/* Shot Type */}
+          <div>
+            <label className="text-[10px] font-medium text-text-muted mb-1.5 flex items-center gap-1">
+              <span>📐</span> Shot Type
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                list="shot-types"
+                value={scene.shotType || ''}
+                onChange={(e) => onUpdate('shotType', e.target.value)}
+                placeholder="Select or type shot type..."
+                className="w-full text-sm bg-surface border border-border rounded-lg px-3 py-2
+                           text-text outline-none focus:border-indigo-400 transition-colors
+                           placeholder:text-text-muted"
+              />
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+              <datalist id="shot-types">
+                <option value="B-Roll" />
                 <option value="Close-Up (CU)" />
                 <option value="Cowboy Shot" />
                 <option value="Crane Shot" />
-                <option value="Dutch Angle / Tilted" />
+                <option value="Crash Zoom" />
+                <option value="Cross-Cutting" />
+                <option value="Cutaway" />
+                <option value="Dissolve Shot" />
+                <option value="Dolly / Tracking Shot" />
+                <option value="Dutch Tilt" />
                 <option value="Establishing Shot" />
                 <option value="Extreme Close-Up (ECU)" />
                 <option value="Extreme Wide Shot (EWS)" />
-                <option value="Eye Level" />
-                <option value="High Angle" />
+                <option value="Follow Shot" />
+                <option value="Freeze Frame" />
+                <option value="Handheld Shot" />
+                <option value="Insert Shot" />
+                <option value="Jump Cut" />
                 <option value="Long Shot (LS)" />
-                <option value="Low Angle" />
                 <option value="Macro Shot" />
+                <option value="Master Shot" />
+                <option value="Match Cut" />
                 <option value="Medium Close-Up (MCU)" />
                 <option value="Medium Shot (MS)" />
+                <option value="Montage" />
                 <option value="Over-the-Shoulder (OTS)" />
+                <option value="Pan Shot" />
+                <option value="Pickup Shot" />
                 <option value="Point of View (POV)" />
-                <option value="Tracking Shot / Dolly" />
+                <option value="Pull Focus / Rack Focus" />
+                <option value="Reaction Shot" />
+                <option value="Reverse Shot" />
+                <option value="Slow Motion" />
+                <option value="Split Screen" />
+                <option value="Steadicam Shot" />
+                <option value="Tilt Shot" />
+                <option value="Time-Lapse" />
                 <option value="Two-Shot" />
+                <option value="Whip Pan" />
                 <option value="Wide Shot (WS)" />
+                <option value="Wipe Shot" />
+                <option value="Zoom Shot" />
               </datalist>
             </div>
           </div>
@@ -587,14 +655,16 @@ function SceneField({ value, onChange }) {
       ? {
           scene: String(scenes.length + 1),
           script: templateData.script || '',
-          camera: templateData.camera || '',
+          cameraAngle: templateData.cameraAngle || '',
+          shotType: templateData.shotType || '',
           location: templateData.location || '',
           checklist: (templateData.checklist || []).map(c => ({ text: c.text, done: false }))
         }
       : {
           scene: String(scenes.length + 1),
           script: '',
-          camera: '',
+          cameraAngle: '',
+          shotType: '',
           location: '',
           checklist: []
         }
@@ -700,7 +770,8 @@ function SceneField({ value, onChange }) {
       id: `tpl_${Date.now()}`,
       name: templateData.name || 'Untitled',
       script: templateData.script || '',
-      camera: templateData.camera || '',
+      cameraAngle: templateData.cameraAngle || '',
+      shotType: templateData.shotType || '',
       location: templateData.location || '',
       checklist: (templateData.checklist || []).map(c => ({ text: c.text, done: false })),
       createdAt: new Date().toISOString()
@@ -864,8 +935,8 @@ function SceneField({ value, onChange }) {
                             <div className="text-xs font-medium text-text truncate">{tpl.name}</div>
                             <div className="text-[10px] text-text-muted truncate mt-0.5">
                               {tpl.script ? `📝 ${tpl.script.slice(0, 40)}` : ''}
-                              {tpl.camera ? `${tpl.script ? ' · ' : ''}🎥 ${tpl.camera.slice(0, 30)}` : ''}
-                              {tpl.location ? `${tpl.script || tpl.camera ? ' · ' : ''}📍 ${tpl.location.slice(0, 25)}` : ''}
+                              {(tpl.cameraAngle || tpl.shotType) ? `${tpl.script ? ' · ' : ''}🎥 ${(tpl.cameraAngle || tpl.shotType || '').slice(0, 30)}` : ''}
+                              {tpl.location ? `${(tpl.script || tpl.cameraAngle || tpl.shotType) ? ' · ' : ''}📍 ${tpl.location.slice(0, 25)}` : ''}
                             </div>
                           </div>
                           <button
