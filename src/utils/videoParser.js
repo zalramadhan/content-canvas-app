@@ -141,7 +141,7 @@ export function getPlatformName(platform) {
   switch (platform) {
     case PLATFORMS.YOUTUBE: return 'YouTube'
     case PLATFORMS.TIKTOK: return 'TikTok'
-    case PLATFORMS.INSTAGRAM: return 'Instagram'
+    case PLATFORMS.INSTAGRAM: return 'Reference'
     case PLATFORMS.PINTEREST: return 'Pinterest'
     case PLATFORMS.IMAGE: return 'Image'
     default: return 'Unknown'
