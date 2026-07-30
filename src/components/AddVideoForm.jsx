@@ -30,8 +30,7 @@ export default function AddVideoForm({ onAdd, onCancel }) {
       notes: '',
       concept: '',
       hook: '',
-      scripting: '',
-      shooting: '',
+      scenes: '',
       editing: '',
     })
     setUrl('')
