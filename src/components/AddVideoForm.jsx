@@ -103,7 +103,7 @@ export default function AddVideoForm({ onAdd, onCancel, initialType = 'video' })
           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
                      transition-all duration-150 ${
             contentType === 'video'
-              ? 'bg-surface text-text shadow-sm'
+              ? 'bg-surface text-text shadow-sm ring-1 ring-orange-200 dark:ring-orange-700'
               : 'text-text-muted hover:text-text'
           }`}
         >
@@ -116,7 +116,7 @@ export default function AddVideoForm({ onAdd, onCancel, initialType = 'video' })
           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
                      transition-all duration-150 ${
             contentType === 'carousel'
-              ? 'bg-surface text-text shadow-sm'
+              ? 'bg-surface text-text shadow-sm ring-1 ring-orange-200 dark:ring-orange-700'
               : 'text-text-muted hover:text-text'
           }`}
         >
@@ -136,12 +136,12 @@ export default function AddVideoForm({ onAdd, onCancel, initialType = 'video' })
             ${error
               ? 'border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-900/20'
               : focused
-                ? 'border-primary-400 bg-primary-50/30 dark:bg-primary-900/20'
-                : 'border-border bg-surface hover:border-primary-200 dark:hover:border-primary-700'
+                ? 'border-orange-400 bg-orange-50/30 dark:bg-orange-900/20'
+                : 'border-border bg-surface hover:border-orange-200 dark:hover:border-orange-700'
             }
           `}
         >
-          <Link className={`w-3.5 h-3.5 shrink-0 ${url ? 'text-primary-500' : 'text-text-muted/50'}`} />
+          <Link className={`w-3.5 h-3.5 shrink-0 ${url ? 'text-orange-500' : 'text-text-muted/50'}`} />
           <input
             type="url"
             value={url}
@@ -186,9 +186,9 @@ export default function AddVideoForm({ onAdd, onCancel, initialType = 'video' })
         <button
           type="submit"
           disabled={!headline.trim()}
-          className="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-200 
-                     dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 
-                     text-white text-sm font-medium rounded-xl
+          className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 
+                     dark:disabled:bg-[oklch(0.46_0.11_59.05_/_0.25)] disabled:text-gray-400 dark:disabled:text-gray-600 
+                     text-white text-sm font-semibold rounded-xl shadow-sm shadow-orange-500/20
                      transition-all duration-150 active:scale-[0.98]"
         >
           Add Idea

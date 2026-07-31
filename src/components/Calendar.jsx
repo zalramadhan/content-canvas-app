@@ -88,27 +88,27 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, mont
   }
 
   return (
-    <div className="bg-surface rounded-2xl border border-border overflow-hidden card-shadow">
+    <div className="bg-surface rounded-2xl border border-border/50 overflow-hidden">
       {/* Calendar Header */}
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-border-light">
+      <div className="px-5 pt-5 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <CalendarDays className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-          <h2 className="text-lg font-semibold text-text">
+          <CalendarDays className="w-4 h-4 text-primary-400" />
+          <h2 className="text-sm font-semibold text-text tracking-tight">
             {format(currentMonth, 'MMMM yyyy')}
           </h2>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <button
             onClick={goToToday}
-            className="px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 
-                       hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors duration-150"
+            className="px-3 py-1.5 text-[11px] font-medium text-text-secondary
+                       hover:text-text hover:bg-surface-hover rounded-lg transition-all duration-150"
           >
             Today
           </button>
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center">
             <button
               onClick={prevMonth}
-              className="p-2 text-text-secondary hover:text-text hover:bg-surface-hover 
+              className="p-1.5 text-text-muted hover:text-text hover:bg-surface-hover
                          rounded-lg transition-all duration-150"
               aria-label="Previous month"
             >
@@ -116,7 +116,7 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, mont
             </button>
             <button
               onClick={nextMonth}
-              className="p-2 text-text-secondary hover:text-text hover:bg-surface-hover 
+              className="p-1.5 text-text-muted hover:text-text hover:bg-surface-hover
                          rounded-lg transition-all duration-150"
               aria-label="Next month"
             >
@@ -127,13 +127,13 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, mont
       </div>
 
       {/* Calendar Grid */}
-      <div className="p-4">
+      <div className="px-4 pb-4">
         {/* Day names */}
-        <div className="grid grid-cols-7 mb-1 sm:mb-2">
+        <div className="grid grid-cols-7 mb-1">
           {DAY_NAMES_SHORT.map((day, i) => (
             <div
               key={i}
-              className="text-center text-[10px] sm:text-xs font-medium text-text-muted py-1 sm:py-2"
+              className="text-center text-[11px] font-medium text-text-muted/60 py-1.5"
               title={DAY_NAMES_FULL[i]}
             >
               <span className="hidden xs:inline">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]}</span>
@@ -143,7 +143,7 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, mont
         </div>
 
         {/* Day cells */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-px bg-border/20 rounded-xl overflow-hidden">
           {days.map((day, idx) => {
             const key = dateKey(day)
             const inMonth = isSameMonth(day, currentMonth)
@@ -159,18 +159,18 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, mont
                 key={idx}
                 onClick={() => onDayClick(day)}
                 className={`
-                  relative p-1 sm:p-1.5 rounded-xl border transition-all duration-150
+                  relative p-1.5 transition-all duration-150
                   flex flex-col items-stretch gap-0.5 group
                   ${inMonth
-                    ? 'border-transparent hover:border-primary-200 dark:hover:border-primary-700 hover:bg-primary-50/50 dark:hover:bg-primary-900/20'
-                    : 'border-transparent opacity-30 cursor-default'
+                    ? 'bg-surface hover:bg-surface-hover cursor-pointer'
+                    : 'bg-transparent cursor-default'
                   }
                   ${todayMatch
-                    ? 'ring-1 sm:ring-2 ring-primary-400 dark:ring-primary-500 ring-offset-1 dark:ring-offset-surface bg-primary-50/70 dark:bg-primary-900/40'
+                    ? 'bg-orange-50 dark:bg-orange-900/20 ring-1 ring-inset ring-orange-400 dark:ring-orange-500/50'
                     : ''
                   }
                   ${contentCount > 0
-                    ? sidebarOpen ? 'min-h-[56px] xs:min-h-[64px] sm:min-h-[72px]' : 'min-h-[64px] xs:min-h-[72px] sm:min-h-[80px]'
+                    ? sidebarOpen ? 'min-h-[56px] xs:min-h-[60px] sm:min-h-[68px]' : 'min-h-[60px] xs:min-h-[68px] sm:min-h-[76px]'
                     : 'min-h-[36px] xs:min-h-[40px] sm:min-h-[44px]'
                   }
                   ${!inMonth ? 'pointer-events-none' : ''}
@@ -182,7 +182,7 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, mont
                     className={`
                       text-[11px] sm:text-xs font-medium leading-tight
                       ${todayMatch
-                        ? 'bg-primary-600 dark:bg-primary-500 text-white w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center rounded-full text-[9px] sm:text-[10px]'
+                        ? 'bg-orange-500 text-white w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center rounded-full text-[9px] sm:text-[10px]'
                         : inMonth
                           ? isWeekend ? 'text-text-muted' : 'text-text'
                           : 'text-text-muted'
@@ -194,7 +194,9 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, mont
 
                   {/* Content count badge */}
                   {contentCount > 0 && (
-                    <span className="text-[8px] sm:text-[9px] font-semibold text-primary-500 dark:text-primary-400 leading-none">
+                    <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1
+                                     text-[9px] font-bold text-white leading-none rounded-full
+                                     bg-orange-500">
                       {contentCount}
                     </span>
                   )}
@@ -217,10 +219,11 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, mont
                 {/* Add button overlay on hover */}
                 {inMonth && (
                   <div className="absolute inset-0 rounded-xl flex items-start justify-end p-1
-                                  opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary-500/80 shadow-sm
-                                    flex items-center justify-center text-white
-                                    hover:bg-primary-600 active:scale-95 transition-all duration-150">
+                                  opacity-0 group-hover:opacity-100 transition-all duration-200">
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-orange-500 to-orange-600
+                                    shadow-sm shadow-orange-500/30 flex items-center justify-center text-white
+                                    hover:shadow-md hover:shadow-orange-500/40 hover:scale-110 active:scale-95
+                                    transition-all duration-200">
                       <Plus className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                     </div>
                   </div>

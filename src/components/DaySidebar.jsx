@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { format } from 'date-fns'
 import {
-  X, Plus, Trash2, ChevronDown, ChevronUp, FileText,
+  X, Plus, Trash2, ChevronDown, ChevronUp,
   Lightbulb, Quote, Scissors,
   ExternalLink, GripVertical, Check, Clapperboard, Bookmark, Clock, Image, Link, AlertCircle, Loader2,
-  Target, Hash, BookOpen, Gem, ArrowRight, LayoutGrid, Palette
+  Target, Hash, BookOpen, Gem, ArrowRight, LayoutGrid, Palette, Sparkles
 } from 'lucide-react'
 import VideoEmbed from './VideoEmbed'
 import AddVideoForm from './AddVideoForm'
@@ -24,9 +24,24 @@ function saveTemplates(templates) {
 }
 
 const NOTE_FIELDS = [
-  { key: 'concept', label: 'Concept', icon: Lightbulb, color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30', border: 'border-amber-200 dark:border-amber-700/50' },
-  { key: 'notes', label: 'Notes', icon: FileText, color: 'text-gray-500 dark:text-gray-400', bg: 'bg-gray-50 dark:bg-gray-900/40', border: 'border-gray-200 dark:border-gray-700/50' },
+  { key: 'concept', label: 'Concept', icon: Lightbulb, color: 'text-amber-500 dark:text-amber-400' },
 ]
+
+// ── Smooth Expand/Collapse Hook ──
+function useSmoothExpand(expanded, duration = 300) {
+  const [visible, setVisible] = useState(expanded)
+
+  useEffect(() => {
+    if (expanded) {
+      setVisible(true)
+    } else {
+      const timer = setTimeout(() => setVisible(false), duration)
+      return () => clearTimeout(timer)
+    }
+  }, [expanded, duration])
+
+  return visible
+}
 
 // ── Image Reference Preview (compact, for per-scene use) ──
 function SceneImageRef({ url, onDelete }) {
@@ -159,10 +174,10 @@ function SceneImageReferences({ imageRefs = [], onAdd, onDelete }) {
   return (
     <div>
       <label className="text-[10px] font-medium text-text-muted mb-1.5 flex items-center gap-1">
-        <Image className="w-3 h-3 text-violet-500" />
+        <Image className="w-3 h-3 text-orange-500" />
         <span>Image References</span>
         {imageRefs.length > 0 && (
-          <span className="text-[9px] text-violet-400 dark:text-violet-300 font-medium">
+          <span className="text-[9px] text-orange-400 dark:text-orange-300 font-medium">
             {imageRefs.length}
           </span>
         )}
@@ -198,7 +213,7 @@ function SceneImageReferences({ imageRefs = [], onAdd, onDelete }) {
             onClick={handleAdd}
             disabled={!newUrl.trim()}
             className="shrink-0 px-3 py-1.5 text-xs font-medium text-white
-                       bg-violet-600 hover:bg-violet-700 disabled:bg-gray-300 dark:disabled:bg-gray-700
+                       bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700
                        disabled:text-gray-500 rounded-lg transition-all duration-150 active:scale-95"
           >
             Add
@@ -214,10 +229,10 @@ function SceneImageReferences({ imageRefs = [], onAdd, onDelete }) {
         <button
           onClick={() => setShowInput(true)}
           className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg
-                     border-2 border-dashed border-violet-200 dark:border-violet-700/50
-                     text-[11px] font-medium text-violet-500 dark:text-violet-400
-                     hover:bg-violet-50/50 dark:hover:bg-violet-900/20
-                     hover:border-violet-300 dark:hover:border-violet-600
+                     border-2 border-dashed border-orange-200 dark:border-orange-700/50
+                     text-[11px] font-medium text-orange-500 dark:text-orange-400
+                     hover:bg-orange-50/50 dark:hover:bg-orange-900/20
+                     hover:border-orange-300 dark:hover:border-orange-600
                      transition-all duration-200"
         >
           <Plus className="w-3 h-3" />
@@ -261,7 +276,8 @@ const CTA_OPTIONS = [
 ]
 
 function ContentStrategy({ value, onChange }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
+  const visible = useSmoothExpand(expanded)
 
   // Parse strategy data
   let data = { keyMessage: '', hooks: [], storytelling: [], cta: '', hashtags: [] }
@@ -300,17 +316,16 @@ function ContentStrategy({ value, onChange }) {
   const summary = summaryParts.join(' · ')
 
   return (
-    <div className="rounded-xl border border-emerald-200 dark:border-emerald-700/50 overflow-hidden transition-all duration-200">
+    <div className="mt-3 first:mt-0 border border-border/70 rounded-lg px-3 py-2">
       {/* Header */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-3 py-2.5
-                   bg-emerald-50 dark:bg-emerald-900/30 hover:opacity-80 transition-colors"
+        className="w-full flex items-center justify-between
+                   hover:opacity-70 transition-opacity"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <Target className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
-          <span className="text-xs font-semibold text-text">Content Strategy</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-xs font-semibold text-text">🎯 Content Strategy</span>
           {summary && (
             <span className="text-[10px] text-text-muted bg-white/60 dark:bg-surface-hover/60 px-1.5 py-0.5 rounded-full truncate max-w-[180px]">
               {summary}
@@ -324,8 +339,9 @@ function ContentStrategy({ value, onChange }) {
         )}
       </button>
 
-      {expanded && (
-        <div className="p-3 space-y-4 bg-surface">
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: expanded ? '3000px' : '0', opacity: expanded ? 1 : 0 }}>
+      {visible && (
+        <div className="pt-2 -mx-1 px-1 space-y-3 slide-down">
           {/* Key Message */}
           <div>
             <label className="text-[10px] font-medium text-text-muted mb-1.5 flex items-center gap-1">
@@ -337,9 +353,8 @@ function ContentStrategy({ value, onChange }) {
               onChange={(e) => updateField('keyMessage', e.target.value)}
               placeholder="What's the main message you want to deliver?"
               rows={2}
-              className="w-full text-sm bg-surface border border-emerald-200 dark:border-emerald-700/50
-                         rounded-lg px-3 py-2 text-text outline-none
-                         focus:border-emerald-400 transition-colors
+              className="w-full text-sm bg-surface border border-border rounded-lg px-3 py-2 text-text outline-none
+                         focus:border-primary-400 transition-colors
                          resize-none placeholder:text-text-muted"
             />
           </div>
@@ -369,9 +384,8 @@ function ContentStrategy({ value, onChange }) {
                 value={data.cta}
                 onChange={(e) => updateField('cta', e.target.value)}
                 placeholder="Select or type CTA..."
-                className="w-full text-sm bg-surface border border-emerald-200 dark:border-emerald-700/50
-                           rounded-lg px-3 py-2 text-text outline-none
-                           focus:border-emerald-400 transition-colors placeholder:text-text-muted"
+              className="w-full text-sm bg-surface border border-border rounded-lg px-3 py-2 text-text outline-none
+                         focus:border-primary-400 transition-colors placeholder:text-text-muted"
               />
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 9l6 6 6-6" />
@@ -391,6 +405,7 @@ function ContentStrategy({ value, onChange }) {
           />
         </div>
       )}
+      </div>
     </div>
   )
 }
@@ -467,9 +482,8 @@ function HooksList({ hooks = [], onChange }) {
             }
           }}
           placeholder="Add a hook..."
-          className="flex-1 text-xs bg-surface border border-blue-200 dark:border-blue-700/50
-                     rounded-lg px-2.5 py-1.5 text-text outline-none
-                     focus:border-blue-400 transition-colors placeholder:text-text-muted"
+          className="flex-1 text-xs bg-surface border border-border rounded-lg px-2.5 py-1.5 text-text outline-none
+                     focus:border-primary-400 transition-colors placeholder:text-text-muted"
         />
         <button
           onClick={addHook}
@@ -623,18 +637,18 @@ function StorytellingList({ beats = [], onChange }) {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setShowLabelPicker(true)}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg
-                       border-2 border-dashed border-amber-200 dark:border-amber-700/50
-                       text-[11px] font-medium text-amber-500 dark:text-amber-400
-                       hover:bg-amber-50/50 dark:hover:bg-amber-900/20
-                       hover:border-amber-300 dark:hover:border-amber-600
-                       transition-all duration-200"
-          >
-            <Plus className="w-3 h-3" />
-            Add Story Beat
-          </button>
+        <button
+          onClick={() => setShowLabelPicker(true)}
+          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg
+                     border-2 border-dashed border-amber-200 dark:border-amber-700/50
+                     text-[11px] font-medium text-amber-500 dark:text-amber-400
+                     hover:bg-amber-50/50 dark:hover:bg-amber-900/20
+                     hover:border-amber-300 dark:hover:border-amber-600
+                     transition-all duration-200"
+        >
+          <Plus className="w-3 h-3" />
+          Add Story Beat
+        </button>
         )}
       </div>
     </div>
@@ -676,10 +690,10 @@ function HashtagInput({ hashtags = [], onChange }) {
   return (
     <div>
       <label className="text-[10px] font-medium text-text-muted mb-1.5 flex items-center gap-1">
-        <Hash className="w-3 h-3 text-violet-500" />
+        <Hash className="w-3 h-3 text-orange-500" />
         <span>Hashtags / Keywords</span>
         {hashtags.length > 0 && (
-          <span className="text-[9px] text-violet-400 font-medium">{hashtags.length}</span>
+          <span className="text-[9px] text-orange-400 font-medium">{hashtags.length}</span>
         )}
       </label>
 
@@ -689,13 +703,13 @@ function HashtagInput({ hashtags = [], onChange }) {
             <span
               key={idx}
               className="group/tag inline-flex items-center gap-1 px-2 py-1 rounded-full
-                         bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300
-                         text-[11px] font-medium border border-violet-200 dark:border-violet-700/50"
+                         bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300
+                         text-[11px] font-medium border border-orange-200 dark:border-orange-700/50"
             >
               <span>#{tag}</span>
               <button
                 onClick={() => deleteTag(idx)}
-                className="p-0.5 rounded-full hover:bg-violet-200 dark:hover:bg-violet-800
+                className="p-0.5 rounded-full hover:bg-orange-200 dark:hover:bg-orange-800
                            transition-colors opacity-0 group-hover/tag:opacity-100"
               >
                 <X className="w-2.5 h-2.5" />
@@ -712,15 +726,15 @@ function HashtagInput({ hashtags = [], onChange }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type hashtag and press Enter..."
-          className="flex-1 text-xs bg-surface border border-violet-200 dark:border-violet-700/50
+          className="flex-1 text-xs bg-surface border border-orange-200 dark:border-orange-700/50
                      rounded-lg px-2.5 py-1.5 text-text outline-none
-                     focus:border-violet-400 transition-colors placeholder:text-text-muted"
+                     focus:border-orange-400 transition-colors placeholder:text-text-muted"
         />
         <button
           onClick={addTag}
           disabled={!input.trim()}
           className="shrink-0 px-2.5 py-1.5 text-xs font-medium text-white
-                     bg-violet-500 hover:bg-violet-600 disabled:bg-gray-300 dark:disabled:bg-gray-700
+                     bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700
                      rounded-lg transition-all duration-150 active:scale-95"
         >
           Add
@@ -751,15 +765,16 @@ const LAYOUT_OPTIONS = [
 ]
 
 function CarouselSlide({ slide, index, onUpdate, onDelete }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
+  const visible = useSmoothExpand(expanded)
   const hasDesign = slide.colorPalette || slide.typography || slide.layout || slide.designNotes || slide.designGuide
 
   return (
-    <div className="rounded-xl border border-orange-200 dark:border-orange-700/50 overflow-hidden transition-all duration-200 group/slide">
+    <div className="mt-3 first:mt-0">
       {/* Slide Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-surface border-b border-border">
+      <div className="flex items-center justify-between py-1.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="w-5 h-5 rounded-lg bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">
+          <span className="text-xs font-semibold text-text-secondary shrink-0">
             {index + 1}
           </span>
           <span className="text-xs font-semibold text-text">Slide {index + 1}</span>
@@ -786,8 +801,9 @@ function CarouselSlide({ slide, index, onUpdate, onDelete }) {
         </div>
       </div>
 
-      {expanded && (
-        <div className="p-3 space-y-3 bg-surface">
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: expanded ? '3000px' : '0', opacity: expanded ? 1 : 0 }}>
+      {visible && (
+        <div className="pt-3 space-y-3 slide-down">
           {/* Script / Copy */}
           <div>
             <label className="text-[10px] font-medium text-text-muted mb-1.5 flex items-center gap-1">
@@ -806,13 +822,12 @@ function CarouselSlide({ slide, index, onUpdate, onDelete }) {
           </div>
 
           {/* 🎨 Design Guide — Detailed */}
-          <div className="rounded-xl border border-purple-200 dark:border-purple-700/50 overflow-hidden">
-            <div className="px-3 py-2 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-700/50 flex items-center gap-1.5">
-              <Palette className="w-3.5 h-3.5 text-purple-500" />
-              <span className="text-[11px] font-semibold text-text">Design Guide</span>
-              {hasDesign && <span className="text-[9px] text-purple-400">✓</span>}
+          <div className="mt-3 first:mt-0">
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <span className="text-xs font-semibold text-text">🎨 Design Guide</span>
+              {hasDesign && <span className="text-[9px] text-text-muted">✓</span>}
             </div>
-            <div className="p-3 space-y-3 bg-surface">
+            <div className="space-y-2.5">
               {/* Color Palette */}
               <div>
                 <label className="text-[10px] font-medium text-text-muted mb-1 flex items-center gap-1">
@@ -824,9 +839,8 @@ function CarouselSlide({ slide, index, onUpdate, onDelete }) {
                     value={slide.colorPalette || ''}
                     onChange={(e) => onUpdate('colorPalette', e.target.value)}
                     placeholder="e.g. Purple (#7C3AED), White, Dark Gray"
-                    className="flex-1 text-xs bg-surface border border-purple-200 dark:border-purple-700/50
-                               rounded-lg px-2.5 py-1.5 text-text outline-none
-                               focus:border-purple-400 transition-colors placeholder:text-text-muted"
+              className="flex-1 text-xs bg-surface border border-border rounded-lg px-2.5 py-1.5 text-text outline-none
+                         focus:border-primary-400 transition-colors placeholder:text-text-muted"
                   />
                 </div>
               </div>
@@ -841,9 +855,8 @@ function CarouselSlide({ slide, index, onUpdate, onDelete }) {
                   value={slide.typography || ''}
                   onChange={(e) => onUpdate('typography', e.target.value)}
                   placeholder="e.g. Poppins Bold 32pt, Inter Regular 16pt"
-                  className="w-full text-xs bg-surface border border-purple-200 dark:border-purple-700/50
-                             rounded-lg px-2.5 py-1.5 text-text outline-none
-                             focus:border-purple-400 transition-colors placeholder:text-text-muted"
+                className="w-full text-xs bg-surface border border-border rounded-lg px-2.5 py-1.5 text-text outline-none
+                           focus:border-primary-400 transition-colors placeholder:text-text-muted"
                 />
               </div>
 
@@ -884,22 +897,23 @@ function CarouselSlide({ slide, index, onUpdate, onDelete }) {
                   onChange={(e) => onUpdate('designNotes', e.target.value)}
                   placeholder="Gradients, shadows, icons, illustrations, moods..."
                   rows={2}
-                  className="w-full text-xs bg-surface border border-purple-200 dark:border-purple-700/50
-                             rounded-lg px-2.5 py-1.5 text-text outline-none
-                             focus:border-purple-400 transition-colors
-                             resize-none placeholder:text-text-muted"
+                className="w-full text-xs bg-surface border border-border rounded-lg px-2.5 py-1.5 text-text outline-none
+                           focus:border-primary-400 transition-colors
+                           resize-none placeholder:text-text-muted"
                 />
               </div>
             </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
 
 function CarouselCanvas({ value, onChange }) {
-  const [expanded, setExpanded] = useState(!!(value && value !== '[]'))
+  const [expanded, setExpanded] = useState(false)
+  const visible = useSmoothExpand(expanded)
 
   // Parse slides
   let slides = []
@@ -933,17 +947,15 @@ function CarouselCanvas({ value, onChange }) {
   }
 
   return (
-    <div className="rounded-xl border border-orange-200 dark:border-orange-700/50 overflow-hidden transition-all duration-200">
+    <div className="mt-3 first:mt-0 border border-border/70 rounded-lg px-3 py-2">
       {/* Header */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-3 py-2.5
-                   bg-orange-50 dark:bg-orange-900/30 hover:opacity-80 transition-colors"
+        className="w-full flex items-center justify-between hover:opacity-70 transition-opacity"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <LayoutGrid className="w-4 h-4 text-orange-500 dark:text-orange-400 shrink-0" />
-          <span className="text-xs font-semibold text-text">Carousel Canvas</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-xs font-semibold text-text">📷 Carousel Canvas</span>
           {slides.length > 0 && (
             <span className="text-[10px] text-text-muted bg-white/60 dark:bg-surface-hover/60 px-1.5 py-0.5 rounded-full">
               {slides.length} slide{slides.length > 1 ? 's' : ''}
@@ -957,8 +969,9 @@ function CarouselCanvas({ value, onChange }) {
         )}
       </button>
 
-      {expanded && (
-        <div className="p-3 space-y-3 bg-surface">
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: expanded ? '3000px' : '0', opacity: expanded ? 1 : 0 }}>
+      {visible && (
+        <div className="pt-2 -mx-1 px-1 space-y-3 slide-down">
           {slides.length === 0 && (
             <div className="flex flex-col items-center justify-center py-6 text-center">
               <LayoutGrid className="w-8 h-8 text-orange-300 dark:text-orange-600 mb-2" />
@@ -978,32 +991,30 @@ function CarouselCanvas({ value, onChange }) {
 
           <button
             onClick={addSlide}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
-                       border-2 border-dashed border-orange-200 dark:border-orange-700/50
-                       text-xs font-medium text-orange-600 dark:text-orange-400
-                       hover:bg-orange-50/50 dark:hover:bg-orange-900/20
-                       hover:border-orange-300 dark:hover:border-orange-600
-                       transition-all duration-200 group"
+            className="btn-dashed"
           >
             <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-300" />
             Add Slide
           </button>
+
         </div>
       )}
+      </div>
     </div>
   )
 }
 
 function NoteField({ field, value, onChange }) {
   const Icon = field.icon
-  const [expanded, setExpanded] = useState(!!value)
+  const [expanded, setExpanded] = useState(false)
+  const visible = useSmoothExpand(expanded)
 
   return (
-    <div className={`rounded-xl border ${field.border} overflow-hidden transition-all duration-200`}>
+    <div className="mt-3 first:mt-0 border border-border/70 rounded-lg px-3 py-2">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className={`w-full flex items-center justify-between px-3 py-2.5 ${field.bg} hover:opacity-80 transition-colors`}
+        className={`w-full flex items-center justify-between hover:opacity-70 transition-opacity`}
       >
         <div className="flex items-center gap-2 min-w-0">
           <Icon className={`w-4 h-4 ${field.color} shrink-0`} />
@@ -1020,8 +1031,9 @@ function NoteField({ field, value, onChange }) {
           <ChevronDown className="w-3.5 h-3.5 text-text-muted" />
         )}
       </button>
-      {expanded && (
-        <div className="px-3 py-3 bg-surface">
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: expanded ? '3000px' : '0', opacity: expanded ? 1 : 0 }}>
+      {visible && (
+        <div className="pt-2 -mx-1 px-1 slide-down">
           <textarea
             value={value || ''}
             onChange={(e) => onChange(field.key, e.target.value)}
@@ -1032,12 +1044,14 @@ function NoteField({ field, value, onChange }) {
           />
         </div>
       )}
+      </div>
     </div>
   )
 }
 
 function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleChecklist, onDeleteChecklist, onSaveTemplate, onDragStart, onDragOver, onDrop, onDragEnd, isDragging, isDropTarget }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
+  const visible = useSmoothExpand(expanded)
   const [newItem, setNewItem] = useState('')
   const [saved, setSaved] = useState(false)
   const savedTimerRef = useRef(null)
@@ -1092,14 +1106,13 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
 
   return (
     <div
-      className={`rounded-xl border bg-surface-muted overflow-hidden transition-all duration-200 group/scene
+      className={`rounded-lg border bg-surface-muted/30 overflow-hidden transition-all duration-200 group/scene
         ${isDragging
-          ? 'opacity-40 scale-[0.97] border-indigo-400 dark:border-indigo-500 shadow-lg shadow-indigo-200/30 dark:shadow-indigo-800/40'
-          : 'border-border'
+          ? 'opacity-40 scale-[0.97] border-primary-400 shadow-lg'
+          : 'border-transparent hover:border-border/40'
         }
-        ${isDropTarget === 'before' ? 'mt-1 border-t-2 border-t-indigo-500' : ''}
-        ${isDropTarget === 'after' ? 'mb-1 border-b-2 border-b-indigo-500' : ''}
-        ${!isDragging ? 'hover:border-indigo-200 dark:hover:border-indigo-700' : ''}
+        ${isDropTarget === 'before' ? 'mt-1 border-t-2 border-t-primary-500' : ''}
+        ${isDropTarget === 'after' ? 'mb-1 border-b-2 border-b-primary-500' : ''}
       `}
       draggable={!saved}
       onDragStart={handleDragStart}
@@ -1108,18 +1121,18 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
       onDragEnd={handleDragEnd}
     >
       {/* Scene Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-surface border-b border-border">
+      <div className="flex items-center justify-between py-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <span
-            className="cursor-grab active:cursor-grabbing p-0.5 rounded text-text-muted hover:text-indigo-500
-                       hover:bg-indigo-50 dark:hover:text-indigo-400 dark:hover:bg-indigo-900/30
+            className="cursor-grab active:cursor-grabbing p-0.5 rounded text-text-muted hover:text-primary-500
+                       hover:bg-primary-50 dark:hover:bg-primary-900/30
                        transition-colors duration-150 shrink-0"
             onMouseDown={(e) => e.stopPropagation()}
             title="Drag to reorder scene"
           >
             <GripVertical className="w-3.5 h-3.5" />
           </span>
-          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+          <span className="text-xs font-semibold text-text-secondary shrink-0">
             Scene {scene.scene}
           </span>
           {hasContent && (
@@ -1143,8 +1156,8 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
             ) : (
               <button
                 onClick={handleSaveTemplate}
-                className="p-1 rounded-lg text-text-muted hover:text-indigo-500 hover:bg-indigo-50
-                           dark:hover:bg-indigo-900/30 transition-all"
+                className="p-1 rounded-lg text-text-muted hover:text-orange-500 hover:bg-orange-50
+                           dark:hover:bg-orange-900/30 transition-all"
                 title="Save as template"
               >
                 <Bookmark className="w-3 h-3" />
@@ -1166,8 +1179,9 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
         </div>
       </div>
 
-      {expanded && (
-        <div className="p-3 space-y-3">
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: expanded ? '3000px' : '0', opacity: expanded ? 1 : 0 }}>
+      {visible && (
+        <div className="p-3 space-y-3 slide-down">
           <div className="grid grid-cols-2 gap-3">
             {/* Scene Number */}
             <div>
@@ -1177,7 +1191,7 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
                 value={scene.scene}
                 onChange={(e) => onUpdate('scene', e.target.value)}
                 className="w-full text-sm bg-surface border border-border rounded-lg px-3 py-1.5
-                           text-text outline-none focus:border-indigo-400 transition-colors"
+                           text-text outline-none focus:border-orange-400 transition-colors"
               />
             </div>
             {/* Duration */}
@@ -1191,7 +1205,7 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
                 onChange={(e) => onUpdate('duration', e.target.value)}
                 placeholder="e.g. 0:30, 1:00, 2:15..."
                 className="w-full text-sm bg-surface border border-border rounded-lg px-3 py-1.5
-                           text-text outline-none focus:border-indigo-400 transition-colors
+                           text-text outline-none focus:border-orange-400 transition-colors
                            placeholder:text-text-muted"
               />
             </div>
@@ -1206,10 +1220,9 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
               value={scene.script || ''}
               onChange={(e) => onUpdate('script', e.target.value)}
               placeholder="Write the script or dialog for this scene..."
-              rows={3}
-              className="w-full text-sm bg-surface border border-border rounded-lg px-3 py-2
-                         text-text outline-none focus:border-indigo-400 transition-colors
-                         resize-none placeholder:text-text-muted"
+              rows={3}                className="w-full text-sm bg-surface border border-border rounded-lg px-3 py-2
+                           text-text outline-none focus:border-orange-400 transition-colors
+                           resize-none placeholder:text-text-muted"
             />
           </div>
 
@@ -1383,8 +1396,8 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
                     className={`mt-0.5 w-4 h-4 min-w-[16px] rounded border-2 flex items-center justify-center
                                shrink-0 transition-all duration-150 active:scale-90
                       ${item.done
-                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
-                        : 'border-text-muted/40 hover:border-indigo-400 hover:bg-indigo-50/50'
+                        ? 'bg-orange-500 border-orange-500 text-white shadow-sm'
+                        : 'border-text-muted/40 hover:border-orange-400 hover:bg-orange-50/50'
                       }`}
                   >
                     {item.done && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
@@ -1421,7 +1434,7 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
                   <button
                     onClick={() => { onAddChecklist(newItem.trim()); setNewItem('') }}
                     className="shrink-0 px-2.5 py-1 text-xs font-medium text-white
-                               bg-indigo-600 hover:bg-indigo-700 rounded-lg
+                               bg-orange-500 hover:bg-orange-600 rounded-lg
                                transition-all duration-150 active:scale-95"
                   >
                     Add
@@ -1443,19 +1456,21 @@ function SceneCard({ scene, index, onUpdate, onDelete, onAddChecklist, onToggleC
               onChange={(e) => onUpdate('editing', e.target.value)}
               placeholder="Editing instructions, cuts, transitions, color grading, etc..."
               rows={3}
-              className="w-full text-sm bg-surface border border-rose-200 dark:border-rose-700/50 rounded-lg px-3 py-2
-                         text-text outline-none focus:border-rose-400 transition-colors
+              className="w-full text-sm bg-surface border border-border rounded-lg px-3 py-2
+                         text-text outline-none focus:border-primary-400 transition-colors
                          resize-none placeholder:text-text-muted"
             />
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
 
 function SceneField({ value, onChange }) {
-  const [expanded, setExpanded] = useState(!!(value && value !== '[]'))
+  const [expanded, setExpanded] = useState(false)
+  const visible = useSmoothExpand(expanded)
   const [templates, setTemplates] = useState(loadTemplates)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [sceneDragState, setSceneDragState] = useState({ draggedIndex: null, targetIndex: null, position: null })
@@ -1645,18 +1660,16 @@ function SceneField({ value, onChange }) {
       : `${scenes.length} scene${scenes.length > 1 ? 's' : ''}`
     : ''
 
-  return (
-    <div className="rounded-xl border border-indigo-200 dark:border-indigo-700/50 overflow-hidden transition-all duration-200">
+  return (    <div className="mt-3 first:mt-0 border border-border/70 rounded-lg px-3 py-2">
       {/* Header */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-3 py-2.5
-                   bg-indigo-50 dark:bg-indigo-900/30 hover:opacity-80 transition-colors"
+        className="w-full flex items-center justify-between
+                   hover:opacity-70 transition-opacity"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <Clapperboard className="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
-          <span className="text-xs font-semibold text-text">Scene Production</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-xs font-semibold text-text">🎬 Scene Production</span>
           {progressText && (
             <span className="text-[10px] text-text-muted bg-white/60 dark:bg-surface-hover/60 px-1.5 py-0.5 rounded-full">
               {progressText}
@@ -1670,11 +1683,12 @@ function SceneField({ value, onChange }) {
         )}
       </button>
 
-      {expanded && (
-        <div className="p-3 space-y-3 bg-surface">
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: expanded ? '3000px' : '0', opacity: expanded ? 1 : 0 }}>
+      {visible && (
+        <div className="pt-2 -mx-1 px-1 space-y-3 slide-down">
           {scenes.length === 0 && (
             <div className="flex flex-col items-center justify-center py-6 text-center">
-              <Clapperboard className="w-8 h-8 text-indigo-300 dark:text-indigo-600 mb-2" />
+              <Clapperboard className="w-8 h-8 text-orange-300 dark:text-orange-600 mb-2" />
               <p className="text-xs text-text-muted mb-3">No scenes yet — start planning your production!</p>
             </div>
           )}
@@ -1706,18 +1720,12 @@ function SceneField({ value, onChange }) {
           })}
 
           {/* Add Scene & Templates */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => addScene()}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl
-                         border-2 border-dashed border-indigo-200 dark:border-indigo-700/50
-                         text-xs font-medium text-indigo-600 dark:text-indigo-400
-                         hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20
-                         hover:border-indigo-300 dark:hover:border-indigo-600
-                         transition-all duration-200 group"
-            >
-              <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-300" />
-              Add Scene
+          <div className="flex items-center gap-2">                    <button
+                      onClick={() => addScene()}
+                      className="flex-1 btn-dashed group"
+                    >
+                      <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-300" />
+                      Add Scene
             </button>
             <div className="relative" ref={pickerRef}>
               <button
@@ -1725,13 +1733,13 @@ function SceneField({ value, onChange }) {
                 className={'flex items-center gap-1.5 px-3 py-2.5 rounded-xl border-2 text-xs font-medium ' +
                   'transition-all duration-200 whitespace-nowrap ' +
                   (showTemplatePicker
-                    ? 'border-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
-                    : 'border-indigo-200 dark:border-indigo-700/50 text-indigo-500 dark:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 hover:border-indigo-300')}
+                    ? 'border-orange-400 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
+                    : 'border-orange-200 dark:border-orange-700/50 text-orange-500 dark:text-orange-400 hover:bg-orange-50/50 dark:hover:bg-orange-900/20 hover:border-orange-300')}
               >
                 <Bookmark className={`w-3.5 h-3.5 ${templates.length === 0 ? 'opacity-40' : ''}`} />
                 Templates
                 {templates.length > 0 && (
-                  <span className="text-[10px] font-bold bg-indigo-200 dark:bg-indigo-700 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold bg-orange-200 dark:bg-orange-700 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded-full">
                     {templates.length}
                   </span>
                 )}
@@ -1764,7 +1772,7 @@ function SceneField({ value, onChange }) {
                         <div
                           key={tpl.id}
                           className="group/tpl flex items-center gap-2 px-2 py-2 rounded-lg
-                                     hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer
+                                     hover:bg-orange-50 dark:hover:bg-orange-900/20 cursor-pointer
                                      transition-colors"
                           onClick={() => {
                             addScene(tpl)
@@ -1801,13 +1809,15 @@ function SceneField({ value, onChange }) {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
 
 // ── Multi-Reference Component ──
 function MultiReference({ primaryUrl, refsJson, onUpdateRefs, hasUrl }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
+  const visible = useSmoothExpand(expanded)
   const [newRefUrl, setNewRefUrl] = useState('')
   const [showInput, setShowInput] = useState(false)
   const inputRef = useRef(null)
@@ -1833,21 +1843,18 @@ function MultiReference({ primaryUrl, refsJson, onUpdateRefs, hasUrl }) {
   }
 
   return (
-    <div className="rounded-xl border border-border overflow-hidden transition-all duration-200">
+    <div className="mt-3 first:mt-0 border border-border/70 rounded-lg px-3 py-2">
       {/* Header */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-3 py-2
-                   bg-surface hover:bg-surface-hover transition-colors"
+        className="w-full flex items-center justify-between
+                   hover:opacity-70 transition-opacity"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <svg className="w-4 h-4 text-primary-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polygon points="5 3 19 12 5 21 5 3" />
-          </svg>
-          <span className="text-xs font-semibold text-text">Reference</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-xs font-semibold text-text">🔗 Reference</span>
           {totalCount > 0 && (
-            <span className="text-[10px] text-text-muted bg-white/60 dark:bg-surface-hover/60 px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] text-text-muted px-1.5 py-0.5 rounded-full">
               {totalCount}
             </span>
           )}
@@ -1864,8 +1871,9 @@ function MultiReference({ primaryUrl, refsJson, onUpdateRefs, hasUrl }) {
         )}
       </button>
 
-      {expanded && (
-        <div className="bg-surface-muted">
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: expanded ? '3000px' : '0', opacity: expanded ? 1 : 0 }}>
+      {visible && (
+        <div className="pt-2 -mx-1 px-1 slide-down">
           {/* Primary URL embed */}
           {hasUrl && (
             <div className="border-b border-border last:border-b-0">
@@ -1919,29 +1927,26 @@ function MultiReference({ primaryUrl, refsJson, onUpdateRefs, hasUrl }) {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setShowInput(true)}
-                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg
-                           border-2 border-dashed border-primary-200 dark:border-primary-700/50
-                           text-[11px] font-medium text-primary-600 dark:text-primary-400
-                           hover:bg-primary-50/50 dark:hover:bg-primary-900/20
-                           hover:border-primary-300 dark:hover:border-primary-600
-                           transition-all duration-200"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add Reference
+        <button
+          onClick={() => setShowInput(true)}
+          className="btn-dashed !py-2"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add Reference
               </button>
             )}
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
 
 // ── Single Ref Embed (mini collapsible for additional refs) ──
 function RefEmbed({ url, index, onDelete }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
+  const visible = useSmoothExpand(expanded)
 
   return (
     <div className="border-b border-border last:border-b-0 group/ref">
@@ -1967,11 +1972,13 @@ function RefEmbed({ url, index, onDelete }) {
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
-      {expanded && (
-        <div className="bg-surface-muted">
+      <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: expanded ? '3000px' : '0', opacity: expanded ? 1 : 0 }}>
+      {visible && (
+        <div className="bg-surface-muted slide-down">
           <VideoEmbed url={url} />
         </div>
       )}
+      </div>
     </div>
   )
 }
@@ -1979,7 +1986,7 @@ function RefEmbed({ url, index, onDelete }) {
 function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, onDragEnd, onDrop, isDragging, isDropTarget }) {
   const [collapsed, setCollapsed] = useState(true)
   const video = parseVideoUrl(entry.url)
-  const hasNotes = entry.scenes || entry.carousel || entry.strategy || entry.notes || entry.concept || entry.headline
+  const hasNotes = entry.scenes || entry.carousel || entry.strategy || entry.concept || entry.headline
   const isCarousel = entry.contentType === 'carousel'
   const hasUrl = !!(entry.url && entry.url.trim())
 
@@ -1988,7 +1995,6 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
   const getCollapsedPreview = () => {
     // Headline is always shown as primary preview
     if (entry.headline) return `💡 ${entry.headline}`
-    if (entry.notes) return entry.notes
     if (entry.concept) return entry.concept
     // Content Strategy preview
     if (entry.strategy) {
@@ -2063,13 +2069,12 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
   return (
     <div
       className={`
-        bg-surface rounded-xl border overflow-hidden card-shadow
+        bg-surface-muted/40 rounded-xl border overflow-hidden
         transition-all duration-200
         ${isDragging
-          ? 'opacity-40 scale-[0.97] border-primary-400 dark:border-primary-500 shadow-lg shadow-primary-200/30 dark:shadow-primary-800/40'
-          : collapsed ? 'border-border' : 'hover:card-shadow-hover border-border'
+          ? 'opacity-40 scale-[0.97] border-primary-500 shadow-lg shadow-primary-500/20'
+          : collapsed ? 'border-border/70 cursor-pointer' : 'border-border/70'
         }
-        ${collapsed ? 'hover:bg-surface-hover/50 cursor-pointer' : ''}
         ${isDropTarget === 'before' ? 'border-t-2 border-t-primary-500' : ''}
         ${isDropTarget === 'after' ? 'border-b-2 border-b-primary-500' : ''}
       `}
@@ -2103,7 +2108,7 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
                 📷 Carousel
               </span>
             ) : (
-              <span className="text-[10px] font-medium shrink-0 px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+              <span className="text-[10px] font-medium shrink-0 px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center gap-1">
                 🎬 Reel / Shorts
               </span>
             )}
@@ -2162,7 +2167,7 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
                     📷 Carousel
                   </span>
                 ) : (
-                  <span className="text-xs font-semibold truncate min-w-0 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-semibold truncate min-w-0 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full">
                     🎬 Reel / Shorts
                   </span>
                 )}
@@ -2199,32 +2204,24 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
             </div>
           </div>
 
-          {/* Concept (above video embed) */}
-          <div className="px-3 pb-0" onClick={(e) => e.stopPropagation()}>
-            <div className="space-y-1.5">
-              {NOTE_FIELDS.slice(0, 1).map(field => (
-                <NoteField
-                  key={field.key}
-                  field={field}
-                  value={entry[field.key]}
-                  onChange={updateField}
-                />
-              ))}
-            </div>
-          </div>
+          {/* All sections with consistent spacing */}
+          <div className="px-3 pt-3 pb-3" onClick={(e) => e.stopPropagation()}>
+            {/* Concept */}
+            <NoteField
+              key="concept"
+              field={NOTE_FIELDS[0]}
+              value={entry.concept}
+              onChange={updateField}
+            />
 
-          {/* Reference — collapsible, multi-URL */}
-          <div className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+            {/* Reference */}
             <MultiReference
               primaryUrl={entry.url}
               refsJson={entry.refs}
               onUpdateRefs={(refs) => updateField('refs', refs)}
               hasUrl={hasUrl}
             />
-          </div>
 
-          {/* Notes Section - ordered: Content Strategy → Scenes / Carousel → Notes */}
-          <div className="p-3 space-y-1.5" onClick={(e) => e.stopPropagation()}>
             {/* Content Strategy (hidden for carousel) */}
             {!isCarousel && (
               <ContentStrategy
@@ -2232,6 +2229,7 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
                 onChange={updateField}
               />
             )}
+
             {/* Scene Production (for reel/shorts) or Carousel Canvas (for carousel) */}
             {isCarousel ? (
               <CarouselCanvas
@@ -2244,15 +2242,7 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
                 onChange={updateField}
               />
             )}
-            {/* Notes */}
-            {NOTE_FIELDS.slice(1).map(field => (
-              <NoteField
-                key={field.key}
-                field={field}
-                value={entry[field.key]}
-                onChange={updateField}
-              />
-            ))}
+
           </div>
         </>
       )}
@@ -2320,14 +2310,13 @@ export default function DaySidebar({ date, entries, onAddEntry, onUpdateEntry, o
   return (
     <aside
       className="
-        w-full h-auto max-h-[calc(100vh-8rem)] shadow-lg border rounded-2xl
-        bg-surface border-border
-        shadow-black/10
+        w-full h-auto max-h-[calc(100vh-8rem)] border
+        bg-surface border-border/50 rounded-2xl
         flex flex-col overflow-hidden
       "
     >
         {/* Header */}
-        <div className="shrink-0 px-4 py-3 border-b border-border-light flex items-center justify-between bg-surface">
+        <div className="shrink-0 px-5 py-4 border-b border-border/50 flex items-center justify-between">
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-text truncate">
               {format(date, 'MMMM d')}
@@ -2362,10 +2351,13 @@ export default function DaySidebar({ date, entries, onAddEntry, onUpdateEntry, o
 
           {/* Add Form or Button */}
           {showAddForm ? (
-            <div className="bg-surface-muted rounded-xl p-3 border border-border">
+            <div className="bg-surface rounded-xl p-3 border border-orange-200 dark:border-orange-700/50 shadow-sm shadow-orange-100/50 dark:shadow-orange-900/20">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-text">New Idea</h3>
-                <button onClick={() => setShowAddForm(false)} className="text-xs text-text-muted hover:text-text">
+                <h3 className="text-sm font-semibold text-text flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                  New Idea
+                </h3>
+                <button onClick={() => setShowAddForm(false)} className="text-xs font-medium text-orange-600 dark:text-orange-400 hover:text-orange-700 hover:underline">
                   Cancel
                 </button>
               </div>
@@ -2379,14 +2371,12 @@ export default function DaySidebar({ date, entries, onAddEntry, onUpdateEntry, o
           ) : (
             <button
               onClick={() => setShowAddForm(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl
-                         border-2 border-dashed border-border hover:border-primary-300
-                         text-text-muted hover:text-primary-600 hover:bg-primary-50/50
-                         transition-all duration-200 group"
+              className="btn-dashed group"
             >
               <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-              <span className="text-sm font-medium">Add Idea</span>
+              <span className="text-sm font-semibold">Add Idea</span>
             </button>
+
           )}
         </div>
 
@@ -2394,14 +2384,26 @@ export default function DaySidebar({ date, entries, onAddEntry, onUpdateEntry, o
         <div className="flex-1 overflow-y-auto px-4 pt-3 pb-4 space-y-3">
           {/* Empty State */}
           {entries.length === 0 && !showAddForm && (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mb-3">
-                <ExternalLink className="w-6 h-6 text-primary-400" />
+            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100
+                              dark:from-orange-900/30 dark:to-amber-900/30
+                              flex items-center justify-center mb-4 shadow-sm">
+                <Sparkles className="w-7 h-7 text-orange-500 dark:text-orange-400" />
               </div>
-              <h3 className="text-sm font-semibold text-text mb-1">No content yet</h3>
-              <p className="text-xs text-text-muted">
-                Start by adding your first content idea!
+              <h3 className="text-base font-bold text-text mb-1.5">Your ideas start here</h3>
+              <p className="text-xs text-text-muted max-w-[200px] mx-auto leading-relaxed">
+                Tap the button above to add your first content idea — choose Reel/Shorts or Carousel
               </p>
+              <div className="flex items-center gap-3 mt-5">
+                <span className="flex items-center gap-1.5 text-[10px] text-text-muted">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                  🎬 Reel / Shorts
+                </span>
+                <span className="flex items-center gap-1.5 text-[10px] text-text-muted">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                  📷 Carousel
+                </span>
+              </div>
             </div>
           )}
 

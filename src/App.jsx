@@ -75,17 +75,16 @@ function App() {
   }, [reorderEntry])
 
   return (
-    <div className="min-h-screen bg-surface-muted">
+    <div className="min-h-screen bg-bg-page">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-14 sm:h-16">
+      <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-2xl border-b border-border/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          <div className="flex items-center justify-between h-16">
             {/* Logo / Brand */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 
-                              flex items-center justify-center shadow-sm shadow-primary-200
-                              dark:shadow-primary-900 shrink-0">
-                <PenSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600
+                              flex items-center justify-center shadow-lg shadow-primary-500/20 shrink-0">
+                <PenSquare className="w-4 h-4 text-white" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-sm font-bold text-text tracking-tight truncate">ContentCanvas</h1>
@@ -94,24 +93,25 @@ function App() {
             </div>
 
             {/* Center navigation - hidden on mobile */}
-            <nav className="hidden md:flex items-center gap-1">
-              <button className="px-3 py-1.5 text-xs font-medium text-white
-                                 bg-primary-600 rounded-lg flex items-center gap-1.5">
+            <nav className="hidden md:flex items-center gap-1.5">
+              <button className="px-3.5 py-2 text-xs font-semibold text-white
+                                 bg-primary-600 hover:bg-primary-500 rounded-lg flex items-center gap-2
+                                 transition-all duration-150 active:scale-[0.97]">
                 <CalendarDays className="w-3.5 h-3.5" />
                 Calendar
               </button>
-              <button className="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text 
-                                 hover:bg-surface-hover rounded-lg flex items-center gap-1.5
-                                 transition-colors duration-150">
+              <button className="px-3.5 py-2 text-xs font-medium text-text-muted hover:text-text
+                                 hover:bg-surface-hover rounded-lg flex items-center gap-2
+                                 transition-all duration-150">
                 <LayoutDashboard className="w-3.5 h-3.5" />
                 Dashboard
               </button>
             </nav>
 
             {/* Right side */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {/* Stats */}
-              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-surface-muted rounded-lg">
+              <div className="hidden lg:flex items-center gap-2 px-3.5 py-2 bg-surface-muted rounded-lg border border-border/50">
                 <Video className="w-3.5 h-3.5 text-text-muted" />
                 <span className="text-xs font-medium text-text-secondary">{totalEntries || 0} this month</span>
               </div>
@@ -126,7 +126,7 @@ function App() {
               {/* Dark mode toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-1.5 sm:p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover
+                className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover
                            transition-all duration-200 relative group"
                 aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                 title={isDark ? 'Light mode' : 'Dark mode'}
@@ -141,7 +141,7 @@ function App() {
               {/* Mobile menu */}
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden p-1.5 text-text-muted hover:text-text rounded-lg hover:bg-surface-hover transition-colors"
+                className="md:hidden p-2 text-text-muted hover:text-text rounded-lg hover:bg-surface-hover transition-colors"
                 aria-label="Open menu"
               >
                 <Menu className="w-4 h-4" />
@@ -151,31 +151,25 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content - flex layout for sidebar on large screens */}
-      <main className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
-        {/* Flex container: calendar + optional inline sidebar on xl */}
-        <div className="flex gap-0 xl:gap-6">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-3 sm:px-8 py-6 sm:py-10">
+        {/* Flex container */}
+        <div className="flex gap-0 xl:gap-8">
           {/* Left: Calendar area */}
           <div className="flex-1 min-w-0 transition-all duration-300">
             {/* Hero / Intro */}
-            <div className={`mb-4 sm:mb-6 ${selectedDate ? 'xl:mb-4' : ''}`}>
-              <div className="flex items-start justify-between gap-3">
+            <div className="mb-6 sm:mb-8">
+              <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <h2 className="text-lg sm:text-2xl font-bold text-text tracking-tight">
+                  <h2 className="text-xl sm:text-3xl font-bold text-text tracking-tight">
                     Content Calendar
                   </h2>
-                  <p className="text-xs sm:text-sm text-text-muted mt-0.5 sm:mt-1 max-w-lg">
+                  <p className="text-xs sm:text-sm text-text-muted mt-1.5 max-w-lg leading-relaxed">
                     {selectedDate
-                      ? 'Click a date to manage your content'
+                      ? 'Manage your content ideas for this date.'
                       : 'Plan your social media content day by day.'
                     }
                   </p>
-                </div>
-                <div className="hidden sm:flex items-center gap-1.5 text-xs text-text-muted bg-surface
-                                dark:bg-surface-hover px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-border shrink-0">
-                  <Sparkles className="w-3 h-3.5 text-primary-500" />
-                  <span className="hidden lg:inline">Click any date to start</span>
-                  <span className="lg:hidden">Pick a date</span>
                 </div>
               </div>
             </div>
