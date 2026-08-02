@@ -4,8 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  // Base path for GitHub Pages project site (https://zalramadhan.github.io/content-canvas-app/)
-  base: '/content-canvas-app/',
+  // Deployed on Vercel at the root path (no base path needed)
   plugins: [
     react(),
     tailwindcss(),

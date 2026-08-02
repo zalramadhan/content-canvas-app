@@ -124,32 +124,33 @@ Buka `http://localhost:5173`, daftar akun, dan mulai merencanakan konten! 🎉
 
 ---
 
-## 🚢 Deployment ke GitHub Pages
+## 🚢 Deployment ke Vercel
 
-Project sudah siap deploy otomatis ke **GitHub Pages** lewat GitHub Actions. URL hasilnya: `https://<username>.github.io/content-canvas-app/`
+Cara paling mudah: **import repository GitHub ke Vercel** — setiap push ke `main` otomatis build & deploy (tanpa perlu subpath seperti GitHub Pages).
 
 ### Langkah pertama kali (sekali saja):
 
-1. **Push kode ke GitHub** (sudah ada remote `origin`):
+1. **Buka [vercel.com/new](https://vercel.com/new)** → pilih repo GitHub `content-canvas-app` → **Import**
+2. Vercel otomatis mendeteksi Vite (build command: `npm run build`, output: `dist`)
+3. **Set Environment Variables** di halaman konfigurasi (atau nanti di **Project → Settings → Environment Variables**):
 
-   ```bash
-   git add -A
-   git commit -m "update"
-   git push origin main
-   ```
+   | Nama | Nilai |
+   |---|---|
+   | `VITE_SUPABASE_URL` | URL project Supabase kamu |
+   | `VITE_SUPABASE_ANON_KEY` | anon public key Supabase |
 
-2. **Tambahkan 2 repository secrets** (nilainya sama dengan `.env`):
-   - Repo GitHub → **Settings → Secrets and variables → Actions → New repository secret**
-   - `VITE_SUPABASE_URL` = URL project Supabase
-   - `VITE_SUPABASE_ANON_KEY` = anon public key
+   > ⚠️ Set variabelnya untuk *Production* (dan *Preview* bila perlu), lalu **Redeploy**.
+4. Klik **Deploy** — selesai! URL aplikasi: `https://<project>.vercel.app`
 
-3. **Aktifkan GitHub Pages:**
-   - Repo GitHub → **Settings → Pages**
-   - *Build and deployment → Source* → pilih **GitHub Actions**
+> 💡 Setelah ini, setiap `git push` ke `main` akan otomatis membangun & menerbitkan versi terbaru di Vercel.
 
-4. Workflow (`.github/workflows/deploy.yml`) otomatis menjalankan build & deploy setiap ada push ke `main`. Pantau progress di tab **Actions**.
+### Login & sinkronisasi di Vercel
 
-> 💡 Setelah ini, setiap push ke `main` akan otomatis membangun & menerbitkan versi terbaru.
+Login bekerja sama persis seperti di lokal:
+
+- Buka URL Vercel → **Daftar** (email + password) atau **Masuk** dengan akun yang sama
+- Data otomatis tersinkron karena semua perangkat (lokal, HP, Vercel) terhubung ke **project Supabase yang sama**
+- Untuk *password reset*: pastikan URL Vercel kamu ditambahkan di **Supabase → Authentication → URL Configuration → Redirect URLs**
 
 ---
 
