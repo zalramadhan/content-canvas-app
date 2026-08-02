@@ -1,28 +1,49 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   format,
   isSameMonth,
 } from 'date-fns'
 import {
-  CalendarDays, Video, PenSquare, Sparkles,
-  Menu, LayoutDashboard, Sun, Moon, X
+  CalendarDays, Video, PenSquare,
+  Menu, LayoutDashboard, Sun, Moon, X,
+  Loader2, LogOut, Cloud, CloudCheck, CloudOff
 } from 'lucide-react'
 import Calendar from './components/Calendar'
 import DaySidebar from './components/DaySidebar'
 import ExportDropdown from './components/ExportDropdown'
+import AuthScreen from './components/AuthScreen'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useTheme } from './hooks/useTheme'
+import { supabase } from './lib/supabase'
 
 function App() {
+  const [session, setSession] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+    })
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+    })
+
+    return () => authListener?.subscription.unsubscribe()
+  }, [])
+
+  const userId = session?.user?.id
+
   const {
     data,
+    syncState,
+    retrySync,
     getDayEntries,
     addEntry,
     updateEntry,
     deleteEntry,
     reorderEntry,
     getMonthDateKeys,
-  } = useLocalStorage()
+  } = useLocalStorage({ userId })
 
   const { theme, isDark, toggleTheme } = useTheme()
 
@@ -74,6 +95,32 @@ function App() {
     reorderEntry(key, entryId, newIndex)
   }, [reorderEntry])
 
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut()
+  }, [])
+
+  if (!session) {
+    return <AuthScreen />
+  }
+
+  const syncChip = {
+    syncing: {
+      icon: <Loader2 className="w-3 h-3 animate-spin" />,
+      label: 'Menyinkronkan…',
+      cls: 'text-text-muted',
+    },
+    synced: {
+      icon: <CloudCheck className="w-3 h-3 text-emerald-500" />,
+      label: 'Tersimpan',
+      cls: 'text-emerald-600 dark:text-emerald-400',
+    },
+    offline: {
+      icon: <CloudOff className="w-3 h-3 text-amber-500" />,
+      label: 'Offline',
+      cls: 'text-amber-600 dark:text-amber-400',
+    },
+  }[syncState.status] || { icon: <Cloud className="w-3 h-3 text-text-muted" />, label: '', cls: 'text-text-muted' }
+
   return (
     <div className="min-h-screen bg-bg-page">
       {/* Top Navigation Bar */}
@@ -116,12 +163,42 @@ function App() {
                 <span className="text-xs font-medium text-text-secondary">{totalEntries || 0} this month</span>
               </div>
 
+              {/* Sync status */}
+              {syncState.status !== 'local' && (
+                <button
+                  onClick={syncState.status === 'offline' ? retrySync : undefined}
+                  className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg
+                              bg-surface-muted border border-border/50
+                              ${syncChip.cls}
+                              ${syncState.status === 'offline'
+                                ? 'cursor-pointer hover:bg-surface-hover active:scale-[0.97] transition-all'
+                                : 'cursor-default'}`}
+                  title={syncState.lastSyncedAt
+                    ? `Terakhir sinkron: ${new Date(syncState.lastSyncedAt).toLocaleTimeString()}`
+                    : syncState.error || 'Status sinkronisasi'}
+                >
+                  {syncChip.icon}
+                  <span className="text-[11px] font-medium">{syncChip.label}</span>
+                </button>
+              )}
+
               {/* Export button */}
               <ExportDropdown
                 data={data}
                 currentYear={currentMonth.getFullYear()}
                 currentMonth={currentMonth.getMonth()}
               />
+
+              {/* Logout */}
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50
+                           dark:hover:bg-red-900/30 transition-all duration-200"
+                aria-label="Keluar"
+                title="Keluar"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
 
               {/* Dark mode toggle */}
               <button
@@ -150,6 +227,29 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Offline sync banner */}
+      {syncState.status === 'offline' && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-900/40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 py-2.5 flex items-center justify-between gap-3">
+            <p className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2 min-w-0">
+              <CloudOff className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">
+                {syncState.error || 'Tidak dapat terhubung ke server. Data tetap aman tersimpan di perangkat ini.'}
+              </span>
+            </p>
+            <button
+              onClick={retrySync}
+              className="shrink-0 text-[11px] font-medium px-3 py-1.5 rounded-lg
+                         bg-amber-500/10 hover:bg-amber-500/20
+                         text-amber-700 dark:text-amber-400
+                         border border-amber-300/50 transition-colors"
+            >
+              Coba lagi
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-3 sm:px-8 py-6 sm:py-10">

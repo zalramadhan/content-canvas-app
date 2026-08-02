@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Base path for GitHub Pages project site (https://zalramadhan.github.io/content-canvas-app/)
+  base: '/content-canvas-app/',
   plugins: [
     react(),
     tailwindcss(),
@@ -18,11 +20,12 @@ export default defineConfig({
         background_color: '#0f0f11',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        // Relative paths so the PWA works under the GitHub Pages subpath
+        scope: './',
+        start_url: './',
         icons: [
           {
-            src: 'pwa-icon.svg',
+            src: './pwa-icon.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'any maskable'
