@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, supabaseConfigError } from '../lib/supabase'
 import {
   PenSquare, Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle, ArrowRight, ShieldCheck, Cloud
 } from 'lucide-react'
@@ -61,6 +61,22 @@ export default function AuthScreen() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show a clear message instead of a broken form when env vars are missing
+  if (supabaseConfigError) {
+    return (
+      <div className="min-h-screen bg-bg-page flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md bg-surface rounded-2xl border border-border/60 p-8 text-center shadow-sm">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 dark:bg-amber-900/30
+                          flex items-center justify-center mb-4">
+            <AlertCircle className="w-7 h-7 text-amber-500" />
+          </div>
+          <h1 className="text-lg font-bold text-text">Konfigurasi Belum Lengkap</h1>
+          <p className="text-xs text-text-muted mt-3 leading-relaxed">{supabaseConfigError}</p>
+        </div>
+      </div>
+    )
   }
 
   const handleForgot = async () => {

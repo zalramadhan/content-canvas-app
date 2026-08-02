@@ -20,6 +20,8 @@ function App() {
   const [session, setSession] = useState(null)
 
   useEffect(() => {
+    if (!supabase) return
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
     })
@@ -96,6 +98,7 @@ function App() {
   }, [reorderEntry])
 
   const handleLogout = useCallback(async () => {
+    if (!supabase) return
     await supabase.auth.signOut()
   }, [])
 
