@@ -157,8 +157,6 @@ export async function exportToPDF(data, scope = 'all', year, month) {
 
   // Colors matching app theme
   const primary = [147, 51, 234]   // #9333ea
-  const primaryLight = [168, 85, 247] // #a855f7
-  const darkBg = [30, 30, 46]      // dark header bg
   const lightBg = [249, 250, 251]  // light row bg
   const white = [255, 255, 255]
   const textDark = [9, 9, 11]      // #09090b

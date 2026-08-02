@@ -64,7 +64,7 @@ function DayPreview({ entry }) {
   )
 }
 
-export default function Calendar({ currentMonth, onMonthChange, onDayClick, monthDateKeys, getDayEntries, sidebarOpen }) {
+export default function Calendar({ currentMonth, onMonthChange, onDayClick, getDayEntries, sidebarOpen }) {
   const [today] = useState(new Date())
 
   const monthStart = startOfMonth(currentMonth)
@@ -145,7 +145,6 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, mont
         {/* Day cells */}
         <div className="grid grid-cols-7 gap-px bg-border/20 rounded-xl overflow-hidden">
           {days.map((day, idx) => {
-            const key = dateKey(day)
             const inMonth = isSameMonth(day, currentMonth)
             const todayMatch = isSameDay(day, today)
             const entries = getEntriesForDay(day)

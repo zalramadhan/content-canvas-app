@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getPlatformName, PLATFORMS } from '../utils/videoParser'
+import { PLATFORMS } from '../utils/videoParser'
 import { ExternalLink, AlertCircle, Loader2 } from 'lucide-react'
 
 function DirectImage({ url }) {
@@ -42,7 +42,6 @@ function DirectImage({ url }) {
 function PinterestPreview({ url }) {
   const [imageUrl, setImageUrl] = useState(null)
   const [fetching, setFetching] = useState(true)
-  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -74,7 +73,6 @@ function PinterestPreview({ url }) {
           // Try next proxy
         }
       }
-      if (!cancelled) setFailed(true)
       if (!cancelled) setFetching(false)
     }
 
@@ -122,7 +120,6 @@ function PinterestPreview({ url }) {
 }
 
 export default function ImagePreview({ url, platform }) {
-  const platformName = getPlatformName(platform)
 
   if (platform === PLATFORMS.PINTEREST) {
     return (

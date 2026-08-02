@@ -4,11 +4,11 @@ import {
   X, Plus, Trash2, ChevronDown, ChevronUp,
   Lightbulb, Quote, Scissors,
   ExternalLink, GripVertical, Check, Clapperboard, Bookmark, Clock, Image, Link, AlertCircle, Loader2,
-  Target, Hash, BookOpen, Gem, ArrowRight, LayoutGrid, Palette, Sparkles
+  Hash, BookOpen, Gem, ArrowRight, LayoutGrid, Sparkles
 } from 'lucide-react'
 import VideoEmbed from './VideoEmbed'
 import AddVideoForm from './AddVideoForm'
-import { parseVideoUrl, getPlatformName, PLATFORMS } from '../utils/videoParser'
+import { parseVideoUrl, PLATFORMS } from '../utils/videoParser'
 
 // ── Template Storage ──
 const TEMPLATES_KEY = 'sceneTemplates'
@@ -1588,7 +1588,7 @@ function SceneField({ value, onChange }) {
     })
   }, [])
 
-  const handleSceneDrop = useCallback((fromIndex, toIndex) => {
+  const handleSceneDrop = (fromIndex, toIndex) => {
     const { position } = sceneDragState
     if (fromIndex === toIndex) {
       setSceneDragState({ draggedIndex: null, targetIndex: null, position: null })
@@ -1609,7 +1609,7 @@ function SceneField({ value, onChange }) {
       saveScenes(renumbered)
     }
     setSceneDragState({ draggedIndex: null, targetIndex: null, position: null })
-  }, [scenes, sceneDragState])
+  }
 
   const handleSceneDragEnd = useCallback(() => {
     setSceneDragState({ draggedIndex: null, targetIndex: null, position: null })
@@ -1985,7 +1985,6 @@ function RefEmbed({ url, index, onDelete }) {
 
 function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, onDragEnd, onDrop, isDragging, isDropTarget }) {
   const [collapsed, setCollapsed] = useState(true)
-  const video = parseVideoUrl(entry.url)
   const hasNotes = entry.scenes || entry.carousel || entry.strategy || entry.concept || entry.headline
   const isCarousel = entry.contentType === 'carousel'
   const hasUrl = !!(entry.url && entry.url.trim())

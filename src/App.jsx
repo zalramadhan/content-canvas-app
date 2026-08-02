@@ -47,7 +47,7 @@ function App() {
     getMonthDateKeys,
   } = useLocalStorage({ userId })
 
-  const { theme, isDark, toggleTheme } = useTheme()
+  const { isDark, toggleTheme } = useTheme()
 
   const [selectedDate, setSelectedDate] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -282,7 +282,6 @@ function App() {
               currentMonth={currentMonth}
               onMonthChange={handleMonthChange}
               onDayClick={handleDayClick}
-              monthDateKeys={monthDateKeys}
               getDayEntries={getDayEntries}
               sidebarOpen={!!selectedDate}
             />
