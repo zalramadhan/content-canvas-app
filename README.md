@@ -152,6 +152,19 @@ Login bekerja sama persis seperti di lokal:
 - Data otomatis tersinkron karena semua perangkat (lokal, HP, Vercel) terhubung ke **project Supabase yang sama**
 - Untuk *password reset*: pastikan URL Vercel kamu ditambahkan di **Supabase → Authentication → URL Configuration → Redirect URLs**
 
+### ⚠️ Wajib: Set Site URL & Redirect URLs (sekali saja)
+
+**Gejala kalau belum diset:** email konfirmasi / reset password mengarah ke `http://localhost:3000` (default Supabase) padahal kamu daftar di Vercel.
+
+1. Buka **Supabase Dashboard → Authentication → URL Configuration**
+2. **Site URL** → isi: `https://content-canvas-app.vercel.app`
+3. **Redirect URLs** → tambahkan:
+   - `https://content-canvas-app.vercel.app`
+   - `http://localhost:5173` (untuk development lokal)
+4. Klik **Save** — lalu coba daftar/konfirmasi lagi.
+
+> 💡 Setelah ini, link email konfirmasi akan membawa pengguna kembali ke situs yang benar (Vercel saat daftar di Vercel, localhost saat develop lokal).
+
 ---
 
 ## 📁 Struktur Project
@@ -186,6 +199,8 @@ Login bekerja sama persis seperti di lokal:
 | Status **"Offline"** di header | 1) Pastikan tabel sudah dibuat (jalankan `supabase/schema.sql`). 2) Cek koneksi internet. 3) Klik **"Coba lagi"** di banner kuning |
 | Data tidak muncul di perangkat lain | Pastikan **login dengan akun email yang sama** di semua perangkat |
 | Gagal daftar / harus konfirmasi email | Matikan *Confirm email* di Supabase → **Authentication → Providers → Email** |
+| Email konfirmasi mengarah ke `localhost:3000` | Set **Site URL** & **Redirect URLs** di Supabase → **Authentication → URL Configuration** (lihat bagian Deployment) |
+| Login gagal padahal akun sudah didaftar di perangkat lain | Akun kemungkinan **belum dikonfirmasi** (lihat baris di atas), atau cek email/password sudah benar |
 | Data di perangkat ini hilang? | Tenang — data juga tersimpan di localStorage perangkat. Saat login, data lokal otomatis digabung ke cloud |
 | Build gagal di GitHub Actions | Pastikan kedua repository secrets sudah diisi dengan benar |
 

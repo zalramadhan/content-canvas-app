@@ -5,9 +5,28 @@ import {
 } from 'lucide-react'
 
 // Where to send users after email confirm / password reset.
-// Works both locally (localhost) and on GitHub Pages subpaths.
+// Uses the current site (localhost OR Vercel) automatically.
 function redirectBase() {
   return window.location.origin + window.location.pathname
+}
+
+// Terjemahkan pesan error Supabase yang umum menjadi pesan yang jelas
+function friendlyAuthError(message) {
+  if (!message) return 'Terjadi kesalahan. Coba lagi.'
+  const m = message.toLowerCase()
+  if (m.includes('email not confirmed') || m.includes('not confirmed')) {
+    return 'Email belum dikonfirmasi. Cek kotak masuk email kamu untuk link konfirmasi, atau gunakan akun baru jika email konfirmasi tidak diterima.'
+  }
+  if (m.includes('invalid login credentials') || m.includes('invalid email or password')) {
+    return 'Email atau password salah. Periksa kembali, atau klik "Lupa password?" jika lupa.'
+  }
+  if (m.includes('already registered') || m.includes('already exists')) {
+    return 'Email sudah terdaftar. Silakan langsung Masuk, atau gunakan "Lupa password?" jika lupa password.'
+  }
+  if (m.includes('rate limit') || m.includes('too many')) {
+    return 'Terlalu banyak percobaan. Tunggu beberapa saat lalu coba lagi.'
+  }
+  return message
 }
 
 export default function AuthScreen() {
@@ -40,7 +59,7 @@ export default function AuthScreen() {
           email: email.trim(),
           password,
         })
-        if (err) setError(err.message)
+        if (err) setError(friendlyAuthError(err.message))
       } else {
         const { data, error: err } = await supabase.auth.signUp({
           email: email.trim(),
@@ -48,7 +67,7 @@ export default function AuthScreen() {
           options: { emailRedirectTo: redirectBase() },
         })
         if (err) {
-          setError(err.message)
+          setError(friendlyAuthError(err.message))
         } else if (!data.session) {
           // Email confirmation may be enabled
           setInfo(
@@ -91,7 +110,7 @@ export default function AuthScreen() {
         redirectTo: redirectBase(),
       })
       if (err) {
-        setError(err.message)
+        setError(friendlyAuthError(err.message))
       } else {
         setInfo('Link reset password sudah dikirim. Cek email kamu.')
       }
