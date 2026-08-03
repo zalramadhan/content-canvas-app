@@ -246,23 +246,23 @@ export default function Dashboard({ data, onOpenDate }) {
 
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Platform breakdown */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-5">
+        <div className="bg-surface rounded-2xl border border-border/50 p-4 sm:p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
-            <Play className="w-3.5 h-3.5 text-rose-500" /> Breakdown platform
+            <Play className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Breakdown platform
           </h3>
           <div className="space-y-2.5">
             {Object.entries(stats.platforms).sort((a, b) => b[1] - a[1]).map(([name, count]) => (
-              <div key={name} className="flex items-center gap-2.5">
-                <span className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+              <div key={name} className="flex items-center gap-2 sm:gap-2.5">
+                <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
                       style={{ backgroundColor: PLATFORM_COLOR_BY_NAME[name] || '#6b7280' }}>
                   {name.slice(0, 1)}
                 </span>
-                <span className="w-24 text-[11px] font-medium text-text truncate shrink-0">{name}</span>
-                <div className="flex-1 h-2.5 rounded-full bg-surface-muted overflow-hidden">
+                <span className="w-20 sm:w-24 text-[11px] font-medium text-text truncate shrink-0">{name}</span>
+                <div className="flex-1 min-w-0 h-2.5 rounded-full bg-surface-muted overflow-hidden">
                   <div className="h-full rounded-full bg-gradient-to-r from-primary-500 to-fuchsia-500 transition-all duration-500"
                        style={{ width: `${(count / platformMax) * 100}%` }} />
                 </div>
-                <span className="w-6 text-right text-[11px] font-semibold text-text-secondary">{count}</span>
+                <span className="w-6 text-right text-[11px] font-semibold text-text-secondary shrink-0">{count}</span>
               </div>
             ))}
             {Object.keys(stats.platforms).length === 0 && (
@@ -271,30 +271,32 @@ export default function Dashboard({ data, onOpenDate }) {
           </div>
 
           {/* Types + checklist */}
-          <div className="grid grid-cols-3 gap-3 mt-5 pt-4 border-t border-border/40">
-            <div className="text-center">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-5 pt-4 border-t border-border/40">
+            <div className="text-center min-w-0">
               <p className="text-lg font-bold text-text">{stats.types.video}</p>
-              <p className="text-[10px] text-text-muted">🎬 Reel/Shorts</p>
+              <p className="text-[10px] text-text-muted truncate">🎬 Reel/Shorts</p>
             </div>
-            <div className="text-center border-x border-border/40">
+            <div className="text-center border-x border-border/40 min-w-0">
               <p className="text-lg font-bold text-text">{stats.types.carousel}</p>
-              <p className="text-[10px] text-text-muted">📷 Carousel</p>
+              <p className="text-[10px] text-text-muted truncate">📷 Carousel</p>
             </div>
-            <div className="text-center">
+            <div className="text-center min-w-0">
               <p className="text-lg font-bold text-text">
                 {stats.checklistTotal ? `${stats.checklistDone}/${stats.checklistTotal}` : '—'}
               </p>
               <p className="text-[10px] text-text-muted flex items-center justify-center gap-1">
-                <CheckSquare className="w-2.5 h-2.5" /> Checklist produksi
+                <CheckSquare className="w-2.5 h-2.5 shrink-0" />
+                <span className="hidden xs:inline truncate">Checklist produksi</span>
+                <span className="xs:hidden truncate">Checklist</span>
               </p>
             </div>
           </div>
         </div>
 
         {/* Upcoming */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-5">
+        <div className="bg-surface rounded-2xl border border-border/50 p-4 sm:p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
-            <Clock className="w-3.5 h-3.5 text-amber-500" /> Jadwal 7 hari ke depan
+            <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Jadwal 7 hari ke depan
           </h3>
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
             {upcoming.length === 0 && (
@@ -309,11 +311,11 @@ export default function Dashboard({ data, onOpenDate }) {
                 <button
                   key={`${dateKey}-${entry.id}`}
                   onClick={() => onOpenDate(dateKey)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/50
+                  className="w-full flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 rounded-xl border border-border/50
                              hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50/30
                              dark:hover:bg-primary-900/10 transition-all duration-150 text-left"
                 >
-                  <div className="shrink-0 text-center w-11">
+                  <div className="shrink-0 text-center w-10 sm:w-11">
                     <p className="text-base font-bold text-text leading-none">{format(d, 'd')}</p>
                     <p className="text-[9px] text-text-muted uppercase mt-0.5">{format(d, 'EEE')}</p>
                   </div>
@@ -324,7 +326,7 @@ export default function Dashboard({ data, onOpenDate }) {
                       {entry.platform && entry.platform !== 'unknown' ? ` · ${getPlatformName(entry.platform)}` : ''}
                     </p>
                   </div>
-                  <span className={`shrink-0 text-[9px] font-semibold px-2 py-0.5 rounded-full ${status.softBg} ${status.softText}`}>
+                  <span className={`shrink-0 text-[9px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap ${status.softBg} ${status.softText}`}>
                     {status.label}
                   </span>
                 </button>

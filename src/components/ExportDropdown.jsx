@@ -3,7 +3,7 @@ import { Download, FileText, FileSpreadsheet, ChevronDown, Loader2, X } from 'lu
 import { exportToCSV, exportToPDF } from '../utils/exportData'
 import { STATUSES } from '../utils/status'
 
-export default function ExportDropdown({ data, currentYear, currentMonth }) {
+export default function ExportDropdown({ data, currentYear, currentMonth, embedded = false }) {
   const [open, setOpen] = useState(false)
   const [exporting, setExporting] = useState(null) // 'csv-month' | 'csv-all' | 'pdf-month' | 'pdf-all'
   const [statusFilter, setStatusFilter] = useState(null) // null = all statuses
@@ -11,7 +11,7 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
 
   // Close on click outside
   useEffect(() => {
-    if (!open) return
+    if (!open || embedded) return
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setOpen(false)
@@ -25,7 +25,7 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
       clearTimeout(timer)
       document.removeEventListener('mousedown', handler)
     }
-  }, [open])
+  }, [open, embedded])
 
   const handleExport = async (type, scope) => {
     setExporting(`${type}-${scope}`)
@@ -89,6 +89,106 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
     },
   ]
 
+  const content = (
+    <>
+      {/* Status filter */}
+      <div className="px-3 pt-3 pb-2 border-b border-border-light">
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Filter status</p>
+          {statusFilter && (
+            <button
+              onClick={() => setStatusFilter(null)}
+              className="flex items-center gap-1 text-[10px] font-medium text-text-muted hover:text-text
+                         hover:bg-surface-hover px-1.5 py-0.5 rounded transition-colors"
+            >
+              <X className="w-2.5 h-2.5" /> Reset
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1">
+          <button
+            onClick={() => setStatusFilter(null)}
+            className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all duration-150
+                        ${!statusFilter
+                          ? 'bg-surface-muted text-text border-border'
+                          : 'text-text-muted hover:text-text hover:bg-surface-hover border-border/50'}`}
+          >
+            Semua
+          </button>
+          {STATUSES.map(s => {
+            const active = statusFilter === s.id
+            return (
+              <button
+                key={s.id}
+                onClick={() => setStatusFilter(active ? null : s.id)}
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border transition-all duration-150
+                            ${active
+                              ? `${s.softBg} ${s.softText} ${s.border}`
+                              : 'text-text-muted hover:text-text hover:bg-surface-hover border-border/50'}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                {s.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="p-1.5 space-y-0.5">
+        {options.map(opt => {
+          const Icon = opt.icon
+          const loading = isLoading(opt.type, opt.scope)
+
+          return (
+            <button
+              key={opt.id}
+              onClick={() => handleExport(opt.type, opt.scope)}
+              disabled={loading}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
+                         hover:bg-surface-hover transition-all duration-150
+                         disabled:opacity-50 disabled:cursor-not-allowed group"
+            >
+              {/* Icon container */}
+              <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/30
+                              flex items-center justify-center shrink-0
+                              group-hover:bg-primary-100 dark:group-hover:bg-primary-900/50
+                              transition-colors duration-150">
+                {loading ? (
+                  <Loader2 className="w-4 h-4 text-primary-500 animate-spin" />
+                ) : (
+                  <Icon className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                )}
+              </div>
+
+              {/* Text */}
+              <div className="flex-1 text-left min-w-0">
+                <div className="text-xs font-medium text-text">{opt.label}</div>
+                <div className="text-[10px] text-text-muted">{opt.desc}</div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="px-3 py-2 border-t border-border-light">
+        <p className="text-[10px] text-text-muted text-center">
+          {filterSummary
+            ? `Hanya konten berstatus ${filterSummary} yang diekspor`
+            : 'Data exported from your local storage'}
+        </p>
+      </div>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="rounded-xl border border-border/60 overflow-hidden">
+        {content}
+      </div>
+    )
+  }
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Toggle Button */}
@@ -113,93 +213,7 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
                         shadow-lg shadow-black/5 dark:shadow-black/20 overflow-hidden z-50
                         modal-content origin-top-right"
         >
-          {/* Status filter */}
-          <div className="px-3 pt-3 pb-2 border-b border-border-light">
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Filter status</p>
-              {statusFilter && (
-                <button
-                  onClick={() => setStatusFilter(null)}
-                  className="flex items-center gap-1 text-[10px] font-medium text-text-muted hover:text-text
-                             hover:bg-surface-hover px-1.5 py-0.5 rounded transition-colors"
-                >
-                  <X className="w-2.5 h-2.5" /> Reset
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1">
-              <button
-                onClick={() => setStatusFilter(null)}
-                className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all duration-150
-                            ${!statusFilter
-                              ? 'bg-surface-muted text-text border-border'
-                              : 'text-text-muted hover:text-text hover:bg-surface-hover border-border/50'}`}
-              >
-                Semua
-              </button>
-              {STATUSES.map(s => {
-                const active = statusFilter === s.id
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setStatusFilter(active ? null : s.id)}
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border transition-all duration-150
-                                ${active
-                                  ? `${s.softBg} ${s.softText} ${s.border}`
-                                  : 'text-text-muted hover:text-text hover:bg-surface-hover border-border/50'}`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                    {s.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="p-1.5 space-y-0.5">
-            {options.map(opt => {
-              const Icon = opt.icon
-              const loading = isLoading(opt.type, opt.scope)
-
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => handleExport(opt.type, opt.scope)}
-                  disabled={loading}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                             hover:bg-surface-hover transition-all duration-150
-                             disabled:opacity-50 disabled:cursor-not-allowed group"
-                >
-                  {/* Icon container */}
-                  <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-900/30
-                                  flex items-center justify-center shrink-0
-                                  group-hover:bg-primary-100 dark:group-hover:bg-primary-900/50
-                                  transition-colors duration-150">
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 text-primary-500 animate-spin" />
-                    ) : (
-                      <Icon className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                    )}
-                  </div>
-
-                  {/* Text */}
-                  <div className="flex-1 text-left min-w-0">
-                    <div className="text-xs font-medium text-text">{opt.label}</div>
-                    <div className="text-[10px] text-text-muted">{opt.desc}</div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Footer */}
-          <div className="px-3 py-2 border-t border-border-light">
-            <p className="text-[10px] text-text-muted text-center">
-              {filterSummary
-                ? `Hanya konten berstatus ${filterSummary} yang diekspor`
-                : 'Data exported from your local storage'}
-            </p>
-          </div>
+          {content}
         </div>
       )}
     </div>

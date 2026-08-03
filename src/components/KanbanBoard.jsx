@@ -97,7 +97,7 @@ export default function KanbanBoard({ data, onOpenEntry, onUpdateEntry, tagFilte
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border
                       transition-all duration-150 active:scale-95
                       ${selectMode
-                        ? 'bg-primary-600 text-white border-primary-600'
+                        ? 'bg-orange-500 text-white border-orange-500'
                         : 'text-text-secondary hover:text-text hover:bg-surface-hover border-border/60'}`}
         >
           {selectMode ? <X className="w-3.5 h-3.5" /> : <CheckSquare className="w-3.5 h-3.5" />}
@@ -285,7 +285,7 @@ export default function KanbanBoard({ data, onOpenEntry, onUpdateEntry, tagFilte
                             <button
                               onClick={(e) => { e.stopPropagation(); toggleSelect(dateKey, entry.id) }}
                               className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all active:scale-90
-                                          ${isSelected ? 'bg-primary-600 border-primary-600 text-white' : 'border-text-muted/40 hover:border-primary-400'}`}
+                                          ${isSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-text-muted/40 hover:border-orange-400'}`}
                             >
                               {isSelected && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
                             </button>

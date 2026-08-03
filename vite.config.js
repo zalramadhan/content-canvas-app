@@ -15,7 +15,7 @@ export default defineConfig({
         name: 'ContentCanvas - Social Media Planner',
         short_name: 'ContentCanvas',
         description: 'Social Media Content Planning App',
-        theme_color: '#7c3aed',
+        theme_color: '#f97316',
         background_color: '#0f0f11',
         display: 'standalone',
         orientation: 'portrait',

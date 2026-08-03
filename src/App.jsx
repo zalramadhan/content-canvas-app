@@ -74,7 +74,7 @@ function App() {
 
   const [selectedDate, setSelectedDate] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [activeView, setActiveView] = useState('calendar') // 'calendar' | 'kanban' | 'dashboard'
   const [searchOpen, setSearchOpen] = useState(false)
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false)
@@ -248,8 +248,8 @@ function App() {
           <div className="flex items-center justify-between h-16">
             {/* Logo / Brand */}
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600
-                              flex items-center justify-center shadow-lg shadow-primary-500/20 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600
+                              flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
                 <PenSquare className="w-4 h-4 text-white" />
               </div>
               <div className="min-w-0">
@@ -270,7 +270,7 @@ function App() {
                     className={`px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2
                                 transition-all duration-150 active:scale-[0.97]
                                 ${active
-                                  ? 'text-white bg-primary-600 hover:bg-primary-500'
+                                  ? 'text-white bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/30'
                                   : 'text-text-muted hover:text-text hover:bg-surface-hover font-medium'}`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -282,24 +282,8 @@ function App() {
 
             {/* Right side */}
             <div className="flex items-center gap-1.5">
-              {/* Search */}
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-2 rounded-lg
-                           text-text-muted hover:text-text hover:bg-surface-hover
-                           transition-all duration-150"
-                aria-label="Search content"
-                title="Cari konten (Ctrl+K)"
-              >
-                <Search className="w-4 h-4" />
-                <span className="hidden lg:inline text-[11px] font-medium text-text-muted/70">Cari…</span>
-                <kbd className="hidden lg:inline text-[9px] font-medium text-text-muted bg-surface-muted border border-border rounded px-1 py-0.5">
-                  Ctrl K
-                </kbd>
-              </button>
-
               {/* Undo / Redo */}
-              <div className="hidden sm:flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5">
                 <button
                   onClick={undo}
                   disabled={!canUndo}
@@ -361,44 +345,12 @@ function App() {
                 </button>
               )}
 
-              {/* Export button */}
-              <ExportDropdown
-                data={data}
-                currentYear={currentMonth.getFullYear()}
-                currentMonth={currentMonth.getMonth()}
-              />
-
-              {/* Logout */}
+              {/* Menu */}
               <button
-                onClick={handleLogout}
-                className="p-2 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50
-                           dark:hover:bg-red-900/30 transition-all duration-200"
-                aria-label="Keluar"
-                title="Keluar"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-
-              {/* Dark mode toggle */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover
-                           transition-all duration-200 relative group"
-                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                title={isDark ? 'Light mode' : 'Dark mode'}
-              >
-                {isDark ? (
-                  <Sun className="w-4 h-4 group-hover:rotate-45 transition-transform duration-300" />
-                ) : (
-                  <Moon className="w-4 h-4 group-hover:-rotate-12 transition-transform duration-300" />
-                )}
-              </button>
-
-              {/* Mobile menu */}
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden p-2 text-text-muted hover:text-text rounded-lg hover:bg-surface-hover transition-colors"
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-2 text-text-muted hover:text-text rounded-lg hover:bg-surface-hover transition-colors"
                 aria-label="Open menu"
+                title="Menu"
               >
                 <Menu className="w-4 h-4" />
               </button>
@@ -454,17 +406,6 @@ function App() {
                     }
               </p>
             </div>
-            {activeView === 'calendar' && (
-              <div className="hidden sm:flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setSearchOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-text-secondary
-                             hover:text-text hover:bg-surface-hover rounded-lg transition-all"
-                >
-                  <Search className="w-3.5 h-3.5" /> Cari
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -492,8 +433,8 @@ function App() {
                   <span>Has content</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full ring-2 ring-primary-400 ring-offset-1 bg-primary-600
-                                  dark:ring-offset-surface dark:ring-primary-500" />
+                  <div className="w-2 h-2 rounded-full ring-2 ring-orange-400 ring-offset-1 bg-orange-600
+                                  dark:ring-offset-surface dark:ring-orange-500" />
                   <span>Today</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -577,29 +518,29 @@ function App() {
         )}
       </main>
 
-      {/* Mobile Navigation Drawer */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+      {/* Navigation Drawer (menu) */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={() => setMenuOpen(false)}
           />
 
           {/* Drawer */}
-          <div className="absolute left-0 top-0 bottom-0 w-64 bg-surface shadow-2xl border-r border-border
-                          flex flex-col animate-slide-in-left">
+          <div className="absolute right-0 top-0 bottom-0 w-72 bg-surface shadow-2xl border-l border-border
+                          flex flex-col sidebar-panel">
             {/* Drawer Header */}
             <div className="flex items-center justify-between px-4 h-14 border-b border-border-light">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-orange-700 
                                 flex items-center justify-center">
                   <PenSquare className="w-3.5 h-3.5 text-white" />
                 </div>
                 <span className="text-sm font-bold text-text">ContentCanvas</span>
               </div>
               <button
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={() => setMenuOpen(false)}
                 className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors"
                 aria-label="Close menu"
               >
@@ -608,68 +549,74 @@ function App() {
             </div>
 
             {/* Drawer Body */}
-            <div className="flex-1 p-3 space-y-1 overflow-y-auto">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const active = activeView === item.id
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => { setActiveView(item.id); setMobileMenuOpen(false) }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                                ${active
-                                  ? 'bg-primary-600 text-white'
-                                  : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </button>
-                )
-              })}
+            <div className="flex-1 p-3 space-y-4 overflow-y-auto">
+              {/* Navigation */}
+              <div className="space-y-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  const active = activeView === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { setActiveView(item.id); setMenuOpen(false) }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                                  ${active
+                                    ? 'bg-orange-500 text-white'
+                                    : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </div>
 
-              <div className="pt-3 mt-3 border-t border-border-light space-y-1">
+              {/* Search */}
+              <div className="space-y-1">
                 <button
-                  onClick={() => { setSearchOpen(true); setMobileMenuOpen(false) }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-muted hover:text-text
+                  onClick={() => { setSearchOpen(true); setMenuOpen(false) }}
+                  className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-text-muted hover:text-text
                              hover:bg-surface-hover text-sm font-medium transition-colors"
                 >
-                  <Search className="w-4 h-4" />
-                  Cari konten
+                  <span className="flex items-center gap-3">
+                    <Search className="w-4 h-4" />
+                    Cari konten
+                  </span>
+                  <kbd className="text-[9px] font-medium text-text-muted bg-surface-muted border border-border rounded px-1 py-0.5">Ctrl K</kbd>
                 </button>
-                <button
-                  onClick={() => { setAiSettingsOpen(true); setMobileMenuOpen(false) }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-muted hover:text-text
-                             hover:bg-surface-hover text-sm font-medium transition-colors"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  AI Assistant
-                </button>
-                <div className="flex items-center gap-1 px-1 pt-1">
-                  <button
-                    onClick={() => { undo(); setMobileMenuOpen(false) }}
-                    disabled={!canUndo}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium
-                               text-text-muted hover:text-text hover:bg-surface-hover
-                               disabled:opacity-30 transition-colors"
-                  >
-                    <Undo2 className="w-3.5 h-3.5" /> Undo
-                  </button>
-                  <button
-                    onClick={() => { redo(); setMobileMenuOpen(false) }}
-                    disabled={!canRedo}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium
-                               text-text-muted hover:text-text hover:bg-surface-hover
-                               disabled:opacity-30 transition-colors"
-                  >
-                    <Redo2 className="w-3.5 h-3.5" /> Redo
-                  </button>
-                </div>
+              </div>
+
+              {/* Export */}
+              <div>
+                <p className="px-1 mb-1.5 text-[10px] font-semibold text-text-muted uppercase tracking-wide">Ekspor</p>
+                <ExportDropdown
+                  embedded
+                  data={data}
+                  currentYear={currentMonth.getFullYear()}
+                  currentMonth={currentMonth.getMonth()}
+                />
               </div>
             </div>
 
             {/* Drawer Footer */}
-            <div className="px-4 py-3 border-t border-border-light">
-              <p className="text-[10px] text-text-muted text-center">
+            <div className="px-3 py-3 border-t border-border-light space-y-1">
+              <button
+                onClick={toggleTheme}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-muted hover:text-text
+                           hover:bg-surface-hover text-sm font-medium transition-colors"
+              >
+                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {isDark ? 'Light mode' : 'Dark mode'}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-muted hover:text-red-500
+                           hover:bg-red-50 dark:hover:bg-red-900/30 text-sm font-medium transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Keluar
+              </button>
+              <p className="text-[10px] text-text-muted text-center pt-1">
                 ContentCanvas v1.2 — Pipeline, AI & Dashboard
               </p>
             </div>

@@ -101,8 +101,8 @@ function DuplicateButton({ dateKey, onDuplicate }) {
           />
           <button
             onClick={confirm}
-            className="w-full px-2.5 py-1.5 text-[11px] font-semibold text-white bg-primary-600
-                       hover:bg-primary-500 rounded-lg transition-all active:scale-95"
+            className="w-full px-2.5 py-1.5 text-[11px] font-semibold text-white bg-orange-500
+                       hover:bg-orange-600 rounded-lg transition-all active:scale-95"
           >
             Copy
           </button>
@@ -2054,7 +2054,7 @@ function MultiReference({ primaryUrl, refsJson, onUpdateRefs, hasUrl }) {
                   onClick={addRef}
                   disabled={!newRefUrl.trim()}
                   className="shrink-0 px-3 py-1.5 text-xs font-medium text-white
-                             bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 dark:disabled:bg-gray-700
+                             bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700
                              disabled:text-gray-500 rounded-lg transition-all duration-150 active:scale-95"
                 >
                   Add

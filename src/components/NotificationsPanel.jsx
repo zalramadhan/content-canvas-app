@@ -4,10 +4,10 @@ import { Bell, BellRing, Loader2, CheckCircle2 } from 'lucide-react'
 import { getUpcomingItems, notificationsSupported, notificationPermission, requestNotificationPermission } from '../utils/notifications'
 
 /**
- * Notification bell dropdown.
- * Props: data, onOpenDate(dateKey)
+ * Notification bell dropdown (or inline list when embedded).
+ * Props: data, onOpenDate(dateKey), embedded
  */
-export default function NotificationsPanel({ data, onOpenDate }) {
+export default function NotificationsPanel({ data, onOpenDate, embedded = false }) {
   const [open, setOpen] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const ref = useRef(null)
@@ -16,7 +16,7 @@ export default function NotificationsPanel({ data, onOpenDate }) {
   const granted = perm === 'granted'
 
   useEffect(() => {
-    if (!open) return
+    if (!open || embedded) return
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
     }
@@ -25,7 +25,7 @@ export default function NotificationsPanel({ data, onOpenDate }) {
       clearTimeout(timer)
       document.removeEventListener('mousedown', handler)
     }
-  }, [open])
+  }, [open, embedded])
 
   const enable = async () => {
     setRequesting(true)
@@ -39,6 +39,86 @@ export default function NotificationsPanel({ data, onOpenDate }) {
     const last = byDate[byDate.length - 1]
     if (last && last.dateKey === item.dateKey) last.entries.push(item)
     else byDate.push({ dateKey: item.dateKey, entries: [item] })
+  }
+
+  const content = (
+    <>
+      <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between">
+        <p className="text-xs font-semibold text-text">Upcoming content</p>
+        <span className="text-[10px] text-text-muted bg-surface-muted px-2 py-0.5 rounded-full">
+          {items.length} dalam 7 hari
+        </span>
+      </div>
+
+      <div className="max-h-72 overflow-y-auto p-2">
+        {items.length === 0 && (
+          <p className="text-center text-[11px] text-text-muted py-8 px-4">
+            🎉 Tidak ada konten belum ter-posting dalam 7 hari ke depan.
+          </p>
+        )}
+
+        {byDate.map((group) => (
+          <div key={group.dateKey} className="mb-2 last:mb-0">
+            <p className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wide">
+              {isToday(parse(group.dateKey, 'yyyy-MM-dd', new Date()))
+                ? 'Hari ini'
+                : format(parse(group.dateKey, 'yyyy-MM-dd', new Date()), 'EEEE, MMM d')}
+            </p>
+            <div className="space-y-1">
+              {group.entries.map(({ entry }) => (
+                <button
+                  key={entry.id}
+                  onClick={() => { setOpen(false); onOpenDate(group.dateKey) }}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-surface-hover transition-colors text-left"
+                >
+                  <div className="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+                    {entry.contentType === 'carousel' ? '📷' : '🎬'}
+                  </div>
+                  <span className="text-[11px] font-medium text-text truncate flex-1 min-w-0">
+                    {entry.headline || 'Tanpa judul'}
+                  </span>
+                  {entry.status && (
+                    <span className="text-[9px] text-text-muted capitalize shrink-0">
+                      {entry.status}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Permission footer */}
+      <div className="px-4 py-3 border-t border-border/60 bg-surface-muted/40">
+        {!notificationsSupported() ? (
+          <p className="text-[10px] text-text-muted">Browser ini tidak mendukung notifikasi.</p>
+        ) : granted ? (
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+            <CheckCircle2 className="w-3 h-3" /> Notifikasi aktif — diingatkan saat konten jatuh tempo hari ini.
+          </p>
+        ) : (
+          <button
+            onClick={enable}
+            disabled={requesting}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-semibold
+                       text-white bg-orange-500 hover:bg-orange-600 rounded-lg
+                       disabled:opacity-60 transition-all active:scale-95"
+          >
+            {requesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bell className="w-3 h-3" />}
+            Aktifkan notifikasi hari-H
+          </button>
+        )}
+      </div>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="rounded-xl border border-border/60 overflow-hidden">
+        {content}
+      </div>
+    )
   }
 
   return (
@@ -64,73 +144,7 @@ export default function NotificationsPanel({ data, onOpenDate }) {
       {open && (
         <div className="absolute right-0 top-full mt-1.5 w-80 rounded-xl bg-surface border border-border
                         shadow-xl shadow-black/10 dark:shadow-black/30 overflow-hidden z-50 modal-content">
-          <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between">
-            <p className="text-xs font-semibold text-text">Upcoming content</p>
-            <span className="text-[10px] text-text-muted bg-surface-muted px-2 py-0.5 rounded-full">
-              {items.length} dalam 7 hari
-            </span>
-          </div>
-
-          <div className="max-h-72 overflow-y-auto p-2">
-            {items.length === 0 && (
-              <p className="text-center text-[11px] text-text-muted py-8 px-4">
-                🎉 Tidak ada konten belum ter-posting dalam 7 hari ke depan.
-              </p>
-            )}
-
-            {byDate.map((group) => (
-              <div key={group.dateKey} className="mb-2 last:mb-0">
-                <p className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wide">
-                  {isToday(parse(group.dateKey, 'yyyy-MM-dd', new Date()))
-                    ? 'Hari ini'
-                    : format(parse(group.dateKey, 'yyyy-MM-dd', new Date()), 'EEEE, MMM d')}
-                </p>
-                <div className="space-y-1">
-                  {group.entries.map(({ entry }) => (
-                    <button
-                      key={entry.id}
-                      onClick={() => { setOpen(false); onOpenDate(group.dateKey) }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-surface-hover transition-colors text-left"
-                    >
-                      <div className="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
-                        {entry.contentType === 'carousel' ? '📷' : '🎬'}
-                      </div>
-                      <span className="text-[11px] font-medium text-text truncate flex-1 min-w-0">
-                        {entry.headline || 'Tanpa judul'}
-                      </span>
-                      {entry.status && (
-                        <span className="text-[9px] text-text-muted capitalize shrink-0">
-                          {entry.status}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Permission footer */}
-          <div className="px-4 py-3 border-t border-border/60 bg-surface-muted/40">
-            {!notificationsSupported() ? (
-              <p className="text-[10px] text-text-muted">Browser ini tidak mendukung notifikasi.</p>
-            ) : granted ? (
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3 h-3" /> Notifikasi aktif — diingatkan saat konten jatuh tempo hari ini.
-              </p>
-            ) : (
-              <button
-                onClick={enable}
-                disabled={requesting}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-semibold
-                           text-white bg-orange-500 hover:bg-orange-600 rounded-lg
-                           disabled:opacity-60 transition-all active:scale-95"
-              >
-                {requesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bell className="w-3 h-3" />}
-                Aktifkan notifikasi hari-H
-              </button>
-            )}
-          </div>
+          {content}
         </div>
       )}
     </div>

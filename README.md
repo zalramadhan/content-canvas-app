@@ -42,7 +42,7 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - Pipeline produksi, progress checklist scene, dan jadwal 7 hari ke depan
 
 ### 🔍 Search Global
-- Cari semua konten (headline, hook, skrip, caption, hashtag, konsep) — `Ctrl+K`
+- Cari semua konten (headline, hook, skrip, caption, hashtag, konsep) — `Ctrl+K` atau lewat menu hamburger
 - Klik hasil → langsung buka tanggal & kartu terkait
 
 ### ✨ AI Assistant
@@ -63,13 +63,14 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - Tag ikut tersinkron antar perangkat & bisa dicari lewat search global
 
 ### ↩️ Undo / Redo & Notifikasi
-- **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y** untuk undo-redo semua edit
+- **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y** untuk undo-redo semua edit — tombol Undo/Redo di navbar (semua ukuran layar)
 - Lonceng 🔔 di navbar: daftar konten 7 hari ke depan + aktifkan **notifikasi browser** saat konten jatuh tempo hari ini
 
 ### 📤 Ekspor Laporan
 - **CSV** — cocok untuk Excel/Google Sheets (dengan BOM Unicode agar huruf/emoji aman)
 - **PDF** — laporan rapi berwarna (jsPDF + autotable), bisa dipilih **semua data** atau **per bulan**
 - **Filter status** — ekspor hanya konten dengan status tertentu (misal hanya **Posted**); nama file & header laporan ikut menyebutkan filternya
+- Akses lewat **menu hamburger** (☰ di pojok kanan atas) — header kini bersih & fokus
 
 ### ☁️ Sinkronisasi Cloud (Supabase)
 - Login dengan **email & password** — cukup daftar sekali, lalu masuk di perangkat lain
@@ -78,7 +79,9 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - Tetap bisa **offline** (data disimpan juga di localStorage perangkat)
 
 ### 🌗 Lainnya
-- Dark mode (otomatis ikut sistem + bisa diubah manual)
+- **Menu hamburger** (☰) berisi: navigasi, search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar
+- Notifikasi, Undo/Redo, dan AI Assistant selalu terlihat di navbar
+- Dark mode (otomatis ikut sistem + bisa diubah manual dari menu hamburger)
 - PWA — bisa **di-install** ke layar beranda HP seperti aplikasi native
 - Cache thumbnail YouTube untuk loading cepat
 
