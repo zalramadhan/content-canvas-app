@@ -12,9 +12,11 @@ Aplikasi **perencana konten sosial media** berbasis web (PWA) yang bisa dipakai 
 - Tampilan kalender bulanan dengan navigasi antar bulan + tombol **Today**
 - Badge jumlah konten per hari + preview mini (thumbnail YouTube, badge platform, cuplikan catatan)
 - Highlight hari ini (oranye) dan indikator hari yang punya konten
+- **Drag & drop** konten antar tanggal — seret preview/kartu ke hari lain untuk memindahkan (hari tujuan otomatis terbuka)
 
 ### 📝 Editor Perencanaan Harian
 Klik hari mana pun untuk membuka panel perencanaan lengkap:
+- **✏️ Edit Idea** — ubah judul (headline), link referensi, dan tipe konten (Reel/Carousel) dari konten yang sudah ada via ikon pensil di kartu
 
 | Bagian | Fungsi |
 |---|---|
@@ -25,9 +27,49 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 | **📷 Carousel Canvas** | Rancang slide carousel: skrip + panduan desain (palet warna, tipografi, layout) per slide |
 | **🎬 Scene Cards** | Skrip per scene, durasi, camera angle, shot type, lokasi, editing, checklist, drag-&-drop reorder, dan **simpan sebagai template** |
 
+### 🚦 Production Pipeline (Kanban)
+- Status konten: **Idea → Planning → Scripting → Recording → Editing → Ready → Posted**
+- Tampilan **Kanban** di navbar — seret kartu antar kolom untuk mengubah status
+- **Mark as posted** langsung dari badge status (+ link postingan asli & tanggal)
+- **Mode pilih (bulk)**: centang banyak kartu → ubah status, tambah tag, atau hapus sekaligus
+- **✏️ Edit idea langsung di kartu** — ikon pensil untuk ubah judul/link/tipe tanpa keluar dari kanban
+- Badge status berwarna di kalender & editor harian, indikator *overdue* di kanban
+
+### 📊 Dashboard & Insights
+- Statistik: total konten, sudah diposting, siap upload, dalam proses, **streak posting** & total views
+- Tren 6 bulan, distribusi hari paling produktif, breakdown platform & tipe konten
+- **Performa konten**: ringkasan views/likes/comments/shares, top 5 konten, tren views 6 bulan
+- Pipeline produksi, progress checklist scene, dan jadwal 7 hari ke depan
+
+### 🔍 Search Global
+- Cari semua konten (headline, hook, skrip, caption, hashtag, konsep) — `Ctrl+K`
+- Klik hasil → langsung buka tanggal & kartu terkait
+
+### ✨ AI Assistant
+- Generate **hooks**, **caption**, dan **hashtag** langsung di editor
+- Provider: **Google Gemini** (gratis) atau **Groq** — API key disimpan lokal di perangkat
+- Pengaturan di ikon ✨ di navbar → ambil key di AI Studio / console.groq.com
+
+### 💬 Caption & Hashtag Library
+- Simpan caption favorit (ikon bookmark) & sisipkan dari library kapan saja
+- Simpan **set hashtag** ke library & sisipkan sekali klik (di seksi Hashtags)
+- **📊 Metrics**: catat views/likes/comments/shares per konten — muncul di Dashboard
+- Copy konten ke tanggal lain (ikon salin di kartu konten)
+
+### 🏷️ Tags / Kategori
+- Beri **tag/kategori** ke tiap konten (misal: #kampanye, #series, #reels, #tutorial) langsung di kartu konten — dengan saran tag yang sudah dipakai
+- **Filter tag** di kalender & kanban: klik chip tag untuk menampilkan hanya konten bertag itu (dengan hitungan & warna otomatis per tag)
+- **Kelola tag** (ikon ⚙️ di bar filter): **rename** tag di semua konten sekaligus (otomatis gabung jika nama sudah ada) atau **hapus** tag dari semua konten — dengan konfirmasi & bisa di-undo
+- Tag ikut tersinkron antar perangkat & bisa dicari lewat search global
+
+### ↩️ Undo / Redo & Notifikasi
+- **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y** untuk undo-redo semua edit
+- Lonceng 🔔 di navbar: daftar konten 7 hari ke depan + aktifkan **notifikasi browser** saat konten jatuh tempo hari ini
+
 ### 📤 Ekspor Laporan
 - **CSV** — cocok untuk Excel/Google Sheets (dengan BOM Unicode agar huruf/emoji aman)
 - **PDF** — laporan rapi berwarna (jsPDF + autotable), bisa dipilih **semua data** atau **per bulan**
+- **Filter status** — ekspor hanya konten dengan status tertentu (misal hanya **Posted**); nama file & header laporan ikut menyebutkan filternya
 
 ### ☁️ Sinkronisasi Cloud (Supabase)
 - Login dengan **email & password** — cukup daftar sekali, lalu masuk di perangkat lain

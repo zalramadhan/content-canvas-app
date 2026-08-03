@@ -2,10 +2,10 @@ import { useState, useRef } from 'react'
 import { isValidVideoUrl, parseVideoUrl, getPlatformName, PLATFORMS } from '../utils/videoParser'
 import { Link, X, AlertCircle, Check, Video, Lightbulb } from 'lucide-react'
 
-export default function AddVideoForm({ onAdd, onCancel, initialType = 'video' }) {
-  const [headline, setHeadline] = useState('')
-  const [contentType, setContentType] = useState(initialType)
-  const [url, setUrl] = useState('')
+export default function AddVideoForm({ onAdd, onCancel, initialType = 'video', initial = null, onSave = null }) {
+  const [headline, setHeadline] = useState(initial?.headline || '')
+  const [contentType, setContentType] = useState(initial?.contentType || initialType)
+  const [url, setUrl] = useState(initial?.url || '')
   const [error, setError] = useState('')
   const [focused, setFocused] = useState(false)
   const headlineRef = useRef(null)
@@ -30,6 +30,18 @@ export default function AddVideoForm({ onAdd, onCancel, initialType = 'video' })
       parsed = parseVideoUrl(trimmedUrl)
     }
 
+    // Edit mode: only the core idea fields are updated
+    if (onSave) {
+      onSave({
+        headline: trimmedHeadline,
+        url: trimmedUrl || '',
+        platform: parsed?.platform || 'unknown',
+        platformId: parsed?.id || null,
+        contentType,
+      })
+      return
+    }
+
     onAdd({
       headline: trimmedHeadline,
       url: trimmedUrl || '',
@@ -43,6 +55,12 @@ export default function AddVideoForm({ onAdd, onCancel, initialType = 'video' })
       scenes: '',
       carousel: '',
       editing: '',
+      caption: '',
+      status: 'idea',
+      postedUrl: '',
+      postedAt: '',
+      tags: [],
+      metrics: {},
     })
     setHeadline('')
     setUrl('')
@@ -191,7 +209,7 @@ export default function AddVideoForm({ onAdd, onCancel, initialType = 'video' })
                      text-white text-sm font-semibold rounded-xl shadow-sm shadow-orange-500/20
                      transition-all duration-150 active:scale-[0.98]"
         >
-          Add Idea
+          {onSave ? 'Save Changes' : 'Add Idea'}
         </button>
         {onCancel && (
           <button

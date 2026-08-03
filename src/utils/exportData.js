@@ -4,6 +4,16 @@ import { parseVideoUrl, getPlatformName } from './videoParser'
 /**
  * Flatten all entries from storage data into a sortable array.
  */
+const STATUS_LABELS = {
+  idea: 'Idea',
+  planning: 'Planning',
+  scripting: 'Scripting',
+  recording: 'Recording',
+  editing: 'Editing',
+  ready: 'Ready',
+  posted: 'Posted',
+}
+
 function flattenEntries(data) {
   const rows = []
   const dateKeys = Object.keys(data).sort()
@@ -18,6 +28,12 @@ function flattenEntries(data) {
         dayOfWeek: format(parse(dateKey, 'yyyy-MM-dd', new Date()), 'EEEE'),
         platform: getPlatformName(video.platform),
         url: entry.url || '',
+        headline: entry.headline || '',
+        contentType: entry.contentType === 'carousel' ? 'Carousel' : 'Reel/Shorts',
+        statusId: entry.status || 'idea',
+        status: STATUS_LABELS[entry.status] || 'Idea',
+        postedUrl: entry.postedUrl || '',
+        caption: entry.caption || '',
         notes: entry.notes || '',
         concept: entry.concept || '',
         hook: entry.hook || '',
@@ -38,11 +54,17 @@ function filterRowsByMonth(rows, year, month) {
   return rows.filter(r => r.date.startsWith(prefix))
 }
 
+/** Filter rows by content status id (e.g. 'posted'), pass null for all. */
+function filterRowsByStatus(rows, statusFilter) {
+  if (!statusFilter) return rows
+  return rows.filter(r => r.statusId === statusFilter)
+}
+
 // ─── CSV Export ─────────────────────────────────────────────
 
 const CSV_HEADERS = [
-  'Date', 'Day', 'Platform', 'Video URL',
-  'Notes', 'Concept', 'Hook', 'Scripting', 'Shooting', 'Editing',
+  'Date', 'Day', 'Platform', 'Video URL', 'Headline', 'Type', 'Status', 'Posted URL',
+  'Caption', 'Notes', 'Concept', 'Hook', 'Scripting', 'Shooting', 'Editing',
 ]
 
 function escapeCSV(value) {
@@ -65,6 +87,11 @@ function generateCSV(rows) {
       escapeCSV(row.dayOfWeek),
       escapeCSV(row.platform),
       escapeCSV(row.url),
+      escapeCSV(row.headline),
+      escapeCSV(row.contentType),
+      escapeCSV(row.status),
+      escapeCSV(row.postedUrl),
+      escapeCSV(row.caption),
       escapeCSV(row.notes),
       escapeCSV(row.concept),
       escapeCSV(row.hook),
@@ -95,13 +122,16 @@ function downloadBlob(content, filename, mimeType) {
  * @param {'all'|'month'} scope - export scope
  * @param {number} [year] - year for month scope
  * @param {number} [month] - month (0-indexed) for month scope
+ * @param {string|null} [statusFilter] - status id to filter by, or null for all
  */
-export function exportToCSV(data, scope = 'all', year, month) {
+export function exportToCSV(data, scope = 'all', year, month, statusFilter) {
   let rows = flattenEntries(data)
 
   if (scope === 'month' && year != null && month != null) {
     rows = filterRowsByMonth(rows, year, month)
   }
+
+  rows = filterRowsByStatus(rows, statusFilter)
 
   if (rows.length === 0) {
     alert('No data to export.')
@@ -110,10 +140,11 @@ export function exportToCSV(data, scope = 'all', year, month) {
 
   const csv = generateCSV(rows)
   const dateStr = format(new Date(), 'yyyy-MM-dd')
+  const filterLabel = statusFilter ? (STATUS_LABELS[statusFilter] || statusFilter).toLowerCase().replace(/\s+/g, '-') : 'all'
   const scopeLabel = scope === 'month'
     ? `${format(new Date(year, month), 'MMM-yyyy')}`
     : 'all-data'
-  const filename = `contentcanvas-${scopeLabel}-${dateStr}.csv`
+  const filename = `contentcanvas-${scopeLabel}-${filterLabel}-${dateStr}.csv`
 
   downloadBlob(csv, filename, 'text/csv;charset=utf-8')
 }
@@ -126,8 +157,9 @@ export function exportToCSV(data, scope = 'all', year, month) {
  * @param {'all'|'month'} scope - export scope
  * @param {number} [year] - year for month scope
  * @param {number} [month] - month (0-indexed) for month scope
+ * @param {string|null} [statusFilter] - status id to filter by, or null for all
  */
-export async function exportToPDF(data, scope = 'all', year, month) {
+export async function exportToPDF(data, scope = 'all', year, month, statusFilter) {
   // Dynamic import to avoid bundling issue
   const { default: jsPDF } = await import('jspdf')
   await import('jspdf-autotable')
@@ -138,16 +170,19 @@ export async function exportToPDF(data, scope = 'all', year, month) {
     rows = filterRowsByMonth(rows, year, month)
   }
 
+  rows = filterRowsByStatus(rows, statusFilter)
+
   if (rows.length === 0) {
     alert('No data to export.')
     return
   }
 
   const dateStr = format(new Date(), 'yyyy-MM-dd')
+  const filterLabel = statusFilter ? (STATUS_LABELS[statusFilter] || statusFilter).toLowerCase().replace(/\s+/g, '-') : 'all'
   const scopeLabel = scope === 'month'
     ? `${format(new Date(year, month), 'MMMM yyyy')}`
     : 'All Data'
-  const filename = `contentcanvas-${scope === 'month' ? format(new Date(year, month), 'MMM-yyyy') : 'all-data'}-${dateStr}.pdf`
+  const filename = `contentcanvas-${scope === 'month' ? format(new Date(year, month), 'MMM-yyyy') : 'all-data'}-${filterLabel}-${dateStr}.pdf`
 
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -182,7 +217,7 @@ export async function exportToPDF(data, scope = 'all', year, month) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(...textDark)
-  doc.text(`Scope: ${scopeLabel}`, 14, 38)
+  doc.text(`Scope: ${scopeLabel}${filterLabel && filterLabel !== 'all' ? ` (${STATUS_LABELS[statusFilter] || statusFilter})` : ''}`, 14, 38)
 
   const totalEntries = rows.length
   const totalDays = new Set(rows.map(r => r.date)).size
@@ -220,25 +255,27 @@ export async function exportToPDF(data, scope = 'all', year, month) {
   const tableHeaders = [
     'Date',
     'Day',
+    'Type',
+    'Status',
+    'Headline',
     'Platform',
+    'Caption',
     'Notes',
     'Concept',
     'Hook',
-    'Scripting',
-    'Shooting',
-    'Editing',
   ]
 
   const tableRows = rows.map(row => [
     row.dateFormatted,
     row.dayOfWeek.slice(0, 3),
+    row.contentType,
+    row.status,
+    row.headline || '-',
     row.platform,
-    row.notes || '-',
-    row.concept || '-',
-    row.hook || '-',
-    row.scripting || '-',
-    row.shooting || '-',
-    row.editing || '-',
+    (row.caption || '-').slice(0, 60),
+    (row.notes || '-').slice(0, 40),
+    (row.concept || '-').slice(0, 40),
+    (row.hook || '-').slice(0, 40),
   ])
 
   doc.autoTable({
@@ -268,12 +305,13 @@ export async function exportToPDF(data, scope = 'all', year, month) {
       0: { cellWidth: 22, halign: 'center' },
       1: { cellWidth: 10, halign: 'center' },
       2: { cellWidth: 16, halign: 'center' },
-      3: { cellWidth: 'auto' },
+      3: { cellWidth: 14, halign: 'center' },
       4: { cellWidth: 'auto' },
-      5: { cellWidth: 'auto' },
+      5: { cellWidth: 16, halign: 'center' },
       6: { cellWidth: 'auto' },
       7: { cellWidth: 'auto' },
       8: { cellWidth: 'auto' },
+      9: { cellWidth: 'auto' },
     },
     didDrawPage: (data) => {
       // Footer on each page

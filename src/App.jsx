@@ -1,20 +1,32 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   format,
   isSameMonth,
+  startOfMonth,
+  parse,
 } from 'date-fns'
 import {
   CalendarDays, Video, PenSquare,
   Menu, LayoutDashboard, Sun, Moon, X,
-  Loader2, LogOut, Cloud, CloudCheck, CloudOff
+  Loader2, LogOut, Cloud, CloudCheck, CloudOff,
+  Search, Sparkles, Undo2, Redo2, LayoutGrid,
 } from 'lucide-react'
 import Calendar from './components/Calendar'
 import DaySidebar from './components/DaySidebar'
 import ExportDropdown from './components/ExportDropdown'
 import AuthScreen from './components/AuthScreen'
+import KanbanBoard from './components/KanbanBoard'
+import Dashboard from './components/Dashboard'
+import SearchModal from './components/SearchModal'
+import NotificationsPanel from './components/NotificationsPanel'
+import AISettingsModal from './components/AISettingsModal'
+import TagFilterBar from './components/TagFilterBar'
+import TagManagerModal from './components/TagManagerModal'
+import { getAllTags } from './utils/tags'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
+import { notifyDueToday } from './utils/notifications'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -44,6 +56,17 @@ function App() {
     updateEntry,
     deleteEntry,
     reorderEntry,
+    duplicateEntry,
+    moveEntry,
+    renameTag,
+    deleteTag,
+    bulkUpdateEntries,
+    bulkDeleteEntries,
+    bulkAddTag,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
     getMonthDateKeys,
   } = useLocalStorage({ userId })
 
@@ -52,6 +75,27 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeView, setActiveView] = useState('calendar') // 'calendar' | 'kanban' | 'dashboard'
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false)
+  const [focusEntryId, setFocusEntryId] = useState(null)
+  const [tagFilter, setTagFilter] = useState(null)
+  const [tagManagerOpen, setTagManagerOpen] = useState(false)
+
+  const allTagCounts = getAllTags(data)
+  const tagSuggestions = allTagCounts.map(t => t.name)
+
+  const handleRenameTag = useCallback((oldTag, newTag) => {
+    renameTag(oldTag, newTag)
+    // Keep the active filter pointing at the renamed tag
+    if (tagFilter === oldTag) setTagFilter(newTag)
+  }, [renameTag, tagFilter])
+
+  const handleDeleteTag = useCallback((tag) => {
+    deleteTag(tag)
+    // Clear the filter if the deleted tag was active
+    if (tagFilter === tag) setTagFilter(null)
+  }, [deleteTag, tagFilter])
 
   const monthDateKeys = getMonthDateKeys(
     currentMonth.getFullYear(),
@@ -67,11 +111,13 @@ function App() {
   const handleDayClick = useCallback((day) => {
     if (isSameMonth(day, currentMonth)) {
       setSelectedDate(day)
+      setFocusEntryId(null)
     }
   }, [currentMonth])
 
   const handleCloseModal = useCallback(() => {
     setSelectedDate(null)
+    setFocusEntryId(null)
   }, [])
 
   const selectedDateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null
@@ -97,10 +143,74 @@ function App() {
     reorderEntry(key, entryId, newIndex)
   }, [reorderEntry])
 
+  const handleDuplicateEntry = useCallback((dateKey, entryId, targetDateKey) => {
+    duplicateEntry(dateKey, entryId, targetDateKey)
+  }, [duplicateEntry])
+
+  const handleMoveEntry = useCallback((sourceDateKey, entryId, targetDateKey) => {
+    moveEntry(sourceDateKey, entryId, targetDateKey)
+    // Open the destination day and focus the moved entry for clear feedback
+    const d = parse(targetDateKey, 'yyyy-MM-dd', new Date())
+    if (!isNaN(d)) {
+      setSelectedDate(d)
+      setCurrentMonth(startOfMonth(d))
+      setFocusEntryId(entryId)
+    }
+  }, [moveEntry])
+
   const handleLogout = useCallback(async () => {
     if (!supabase) return
     await supabase.auth.signOut()
   }, [])
+
+  // Open a specific date (used by search / kanban / notifications), optionally focusing an entry
+  const openDate = useCallback((dateKey, focusId = null) => {
+    const d = parse(dateKey, 'yyyy-MM-dd', new Date())
+    if (isNaN(d)) return
+    setSelectedDate(d)
+    setCurrentMonth(startOfMonth(d))
+    setActiveView('calendar')
+    setFocusEntryId(focusId)
+  }, [])
+
+  // ── Undo/Redo keyboard shortcuts (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z / Ctrl+Y) ──
+  useEffect(() => {
+    const handler = (e) => {
+      const target = e.target
+      const typing =
+        target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      if (typing) return
+      const mod = e.ctrlKey || e.metaKey
+      if (!mod) return
+      if (e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) redo()
+        else undo()
+      } else if (e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        redo()
+      } else if (e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [undo, redo])
+
+  // ── Due-today browser notification (once granted) ──
+  const dataRef = useRef(data)
+  dataRef.current = data
+  useEffect(() => {
+    if (!userId) return
+    const check = () => notifyDueToday(dataRef.current)
+    const t = setTimeout(check, 5000)
+    const iv = setInterval(check, 30 * 60 * 1000)
+    return () => {
+      clearTimeout(t)
+      clearInterval(iv)
+    }
+  }, [userId])
 
   if (!session) {
     return <AuthScreen />
@@ -124,6 +234,12 @@ function App() {
     },
   }[syncState.status] || { icon: <Cloud className="w-3 h-3 text-text-muted" />, label: '', cls: 'text-text-muted' }
 
+  const navItems = [
+    { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+    { id: 'kanban', label: 'Kanban', icon: LayoutGrid },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  ]
+
   return (
     <div className="min-h-screen bg-bg-page">
       {/* Top Navigation Bar */}
@@ -144,22 +260,82 @@ function App() {
 
             {/* Center navigation - hidden on mobile */}
             <nav className="hidden md:flex items-center gap-1.5">
-              <button className="px-3.5 py-2 text-xs font-semibold text-white
-                                 bg-primary-600 hover:bg-primary-500 rounded-lg flex items-center gap-2
-                                 transition-all duration-150 active:scale-[0.97]">
-                <CalendarDays className="w-3.5 h-3.5" />
-                Calendar
-              </button>
-              <button className="px-3.5 py-2 text-xs font-medium text-text-muted hover:text-text
-                                 hover:bg-surface-hover rounded-lg flex items-center gap-2
-                                 transition-all duration-150">
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                Dashboard
-              </button>
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const active = activeView === item.id
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveView(item.id)}
+                    className={`px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2
+                                transition-all duration-150 active:scale-[0.97]
+                                ${active
+                                  ? 'text-white bg-primary-600 hover:bg-primary-500'
+                                  : 'text-text-muted hover:text-text hover:bg-surface-hover font-medium'}`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {item.label}
+                  </button>
+                )
+              })}
             </nav>
 
             {/* Right side */}
             <div className="flex items-center gap-1.5">
+              {/* Search */}
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-2 rounded-lg
+                           text-text-muted hover:text-text hover:bg-surface-hover
+                           transition-all duration-150"
+                aria-label="Search content"
+                title="Cari konten (Ctrl+K)"
+              >
+                <Search className="w-4 h-4" />
+                <span className="hidden lg:inline text-[11px] font-medium text-text-muted/70">Cari…</span>
+                <kbd className="hidden lg:inline text-[9px] font-medium text-text-muted bg-surface-muted border border-border rounded px-1 py-0.5">
+                  Ctrl K
+                </kbd>
+              </button>
+
+              {/* Undo / Redo */}
+              <div className="hidden sm:flex items-center gap-0.5">
+                <button
+                  onClick={undo}
+                  disabled={!canUndo}
+                  className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover
+                             disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  aria-label="Undo (Ctrl+Z)"
+                  title="Undo (Ctrl+Z)"
+                >
+                  <Undo2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={redo}
+                  disabled={!canRedo}
+                  className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover
+                             disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  aria-label="Redo (Ctrl+Shift+Z)"
+                  title="Redo (Ctrl+Shift+Z)"
+                >
+                  <Redo2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Notifications */}
+              <NotificationsPanel data={data} onOpenDate={openDate} />
+
+              {/* AI Settings */}
+              <button
+                onClick={() => setAiSettingsOpen(true)}
+                className="p-2 rounded-lg text-text-muted hover:text-violet-600 hover:bg-violet-50
+                           dark:hover:bg-violet-900/30 transition-all duration-200"
+                aria-label="AI settings"
+                title="Pengaturan AI Assistant"
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
+
               {/* Stats */}
               <div className="hidden lg:flex items-center gap-2 px-3.5 py-2 bg-surface-muted rounded-lg border border-border/50">
                 <Video className="w-3.5 h-3.5 text-text-muted" />
@@ -256,82 +432,149 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-3 sm:px-8 py-6 sm:py-10">
-        {/* Flex container */}
-        <div className="flex gap-0 xl:gap-8">
-          {/* Left: Calendar area */}
-          <div className="flex-1 min-w-0 transition-all duration-300">
-            {/* Hero / Intro */}
-            <div className="mb-6 sm:mb-8">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h2 className="text-xl sm:text-3xl font-bold text-text tracking-tight">
-                    Content Calendar
-                  </h2>
-                  <p className="text-xs sm:text-sm text-text-muted mt-1.5 max-w-lg leading-relaxed">
-                    {selectedDate
+        {/* Hero / Intro */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="text-xl sm:text-3xl font-bold text-text tracking-tight">
+                {activeView === 'kanban'
+                  ? 'Production Pipeline'
+                  : activeView === 'dashboard'
+                    ? 'Dashboard & Insights'
+                    : 'Content Calendar'}
+              </h2>
+              <p className="text-xs sm:text-sm text-text-muted mt-1.5 max-w-lg leading-relaxed">
+                {activeView === 'kanban'
+                  ? 'Seret konten antar kolom untuk mengubah status produksi.'
+                  : activeView === 'dashboard'
+                    ? 'Statistik konten, produktivitas, dan jadwal mendatang.'
+                    : selectedDate
                       ? 'Manage your content ideas for this date.'
                       : 'Plan your social media content day by day.'
                     }
-                  </p>
-                </div>
-              </div>
+              </p>
             </div>
-
-            {/* Calendar */}
-            <Calendar
-              currentMonth={currentMonth}
-              onMonthChange={handleMonthChange}
-              onDayClick={handleDayClick}
-              getDayEntries={getDayEntries}
-              sidebarOpen={!!selectedDate}
-            />
-
-            {/* Footer stats */}
-            <div className="mt-4 sm:mt-6 flex items-center justify-center gap-4 sm:gap-6 text-xs text-text-muted">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-primary-400 pulse-glow" />
-                <span>Has content</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full ring-2 ring-primary-400 ring-offset-1 bg-primary-600
-                                dark:ring-offset-surface dark:ring-primary-500" />
-                <span>Today</span>
-              </div>
-            </div>
-
-            {/* Inline DaySidebar below calendar on screens below xl */}
-            {selectedDate && (
-              <div className="xl:hidden mt-6">
-                <DaySidebar
-                  date={selectedDate}
-                  entries={selectedEntries}
-                  onAddEntry={handleAddEntry}
-                  onUpdateEntry={handleUpdateEntry}
-                  onDeleteEntry={handleDeleteEntry}
-                  onReorderEntry={handleReorderEntry}
-                  onClose={handleCloseModal}
-                />
+            {activeView === 'calendar' && (
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setSearchOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-text-secondary
+                             hover:text-text hover:bg-surface-hover rounded-lg transition-all"
+                >
+                  <Search className="w-3.5 h-3.5" /> Cari
+                </button>
               </div>
             )}
           </div>
-
-          {/* Right: Inline sidebar on xl+ screens */}
-          {selectedDate && (
-            <div className="hidden xl:block w-96 shrink-0">
-              <div className="sticky top-24">
-                <DaySidebar
-                  date={selectedDate}
-                  entries={selectedEntries}
-                  onAddEntry={handleAddEntry}
-                  onUpdateEntry={handleUpdateEntry}
-                  onDeleteEntry={handleDeleteEntry}
-                  onReorderEntry={handleReorderEntry}
-                  onClose={handleCloseModal}
-                />
-              </div>
-            </div>
-          )}
         </div>
+
+        {activeView === 'calendar' && (
+          <div className="flex gap-0 xl:gap-8">
+            {/* Left: Calendar area */}
+            <div className="flex-1 min-w-0 transition-all duration-300">
+              <div className="mb-4">
+                <TagFilterBar tags={allTagCounts} activeTag={tagFilter} onChange={setTagFilter} onManage={() => setTagManagerOpen(true)} />
+              </div>
+              <Calendar
+                currentMonth={currentMonth}
+                onMonthChange={handleMonthChange}
+                onDayClick={handleDayClick}
+                getDayEntries={getDayEntries}
+                sidebarOpen={!!selectedDate}
+                onMoveEntry={handleMoveEntry}
+                tagFilter={tagFilter}
+              />
+
+              {/* Footer stats */}
+              <div className="mt-4 sm:mt-6 flex items-center justify-center gap-4 sm:gap-6 text-xs text-text-muted flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-primary-400 pulse-glow" />
+                  <span>Has content</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full ring-2 ring-primary-400 ring-offset-1 bg-primary-600
+                                  dark:ring-offset-surface dark:ring-primary-500" />
+                  <span>Today</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>Posted</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-sky-500" />
+                  <span>Dot = status konten</span>
+                </div>
+                <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-text-muted/70">
+                  🖱️ Seret konten antar hari untuk memindahkan
+                </div>
+              </div>
+
+              {/* Inline DaySidebar below calendar on screens below xl */}
+              {selectedDate && (
+                <div className="xl:hidden mt-6">
+                  <DaySidebar
+                    date={selectedDate}
+                    entries={selectedEntries}
+                    onAddEntry={handleAddEntry}
+                    onUpdateEntry={handleUpdateEntry}
+                    onDeleteEntry={handleDeleteEntry}
+                    onReorderEntry={handleReorderEntry}
+                    onClose={handleCloseModal}
+                    onDuplicateEntry={handleDuplicateEntry}
+                    focusEntryId={focusEntryId}
+                    onOpenSettings={() => setAiSettingsOpen(true)}
+                    tagSuggestions={tagSuggestions}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Right: Inline sidebar on xl+ screens */}
+            {selectedDate && (
+              <div className="hidden xl:block w-96 shrink-0">
+                <div className="sticky top-24">
+                  <DaySidebar
+                    date={selectedDate}
+                    entries={selectedEntries}
+                    onAddEntry={handleAddEntry}
+                    onUpdateEntry={handleUpdateEntry}
+                    onDeleteEntry={handleDeleteEntry}
+                    onReorderEntry={handleReorderEntry}
+                    onClose={handleCloseModal}
+                    onDuplicateEntry={handleDuplicateEntry}
+                    focusEntryId={focusEntryId}
+                    onOpenSettings={() => setAiSettingsOpen(true)}
+                    tagSuggestions={tagSuggestions}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeView === 'kanban' && (
+          <>
+            <div className="mb-4">
+              <TagFilterBar tags={allTagCounts} activeTag={tagFilter} onChange={setTagFilter} onManage={() => setTagManagerOpen(true)} />
+            </div>
+            <KanbanBoard
+              data={data}
+              onOpenEntry={openDate}
+              onUpdateEntry={updateEntry}
+              tagFilter={tagFilter}
+              bulkUpdate={bulkUpdateEntries}
+              bulkDelete={bulkDeleteEntries}
+              bulkAddTag={bulkAddTag}
+            />
+          </>
+        )}
+
+        {activeView === 'dashboard' && (
+          <Dashboard
+            data={data}
+            onOpenDate={openDate}
+          />
+        )}
       </main>
 
       {/* Mobile Navigation Drawer */}
@@ -365,34 +608,100 @@ function App() {
             </div>
 
             {/* Drawer Body */}
-            <div className="flex-1 p-3 space-y-1">
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                           bg-primary-600
-                           text-white text-sm font-medium"
-              >
-                <CalendarDays className="w-4 h-4" />
-                Calendar
-              </button>
-              <button
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                           text-text-muted hover:text-text hover:bg-surface-hover
-                           text-sm font-medium transition-colors"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </button>
+            <div className="flex-1 p-3 space-y-1 overflow-y-auto">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const active = activeView === item.id
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => { setActiveView(item.id); setMobileMenuOpen(false) }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                                ${active
+                                  ? 'bg-primary-600 text-white'
+                                  : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {item.label}
+                  </button>
+                )
+              })}
+
+              <div className="pt-3 mt-3 border-t border-border-light space-y-1">
+                <button
+                  onClick={() => { setSearchOpen(true); setMobileMenuOpen(false) }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-muted hover:text-text
+                             hover:bg-surface-hover text-sm font-medium transition-colors"
+                >
+                  <Search className="w-4 h-4" />
+                  Cari konten
+                </button>
+                <button
+                  onClick={() => { setAiSettingsOpen(true); setMobileMenuOpen(false) }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-muted hover:text-text
+                             hover:bg-surface-hover text-sm font-medium transition-colors"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  AI Assistant
+                </button>
+                <div className="flex items-center gap-1 px-1 pt-1">
+                  <button
+                    onClick={() => { undo(); setMobileMenuOpen(false) }}
+                    disabled={!canUndo}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium
+                               text-text-muted hover:text-text hover:bg-surface-hover
+                               disabled:opacity-30 transition-colors"
+                  >
+                    <Undo2 className="w-3.5 h-3.5" /> Undo
+                  </button>
+                  <button
+                    onClick={() => { redo(); setMobileMenuOpen(false) }}
+                    disabled={!canRedo}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium
+                               text-text-muted hover:text-text hover:bg-surface-hover
+                               disabled:opacity-30 transition-colors"
+                  >
+                    <Redo2 className="w-3.5 h-3.5" /> Redo
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Drawer Footer */}
             <div className="px-4 py-3 border-t border-border-light">
               <p className="text-[10px] text-text-muted text-center">
-                ContentCanvas v1.0
+                ContentCanvas v1.2 — Pipeline, AI & Dashboard
               </p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Global Search Modal */}
+      {searchOpen && (
+        <SearchModal
+          data={data}
+          onClose={() => setSearchOpen(false)}
+          onSelect={(dateKey, entryId) => {
+            setSearchOpen(false)
+            openDate(dateKey, entryId)
+          }}
+        />
+      )}
+
+      {/* AI Settings Modal */}
+      {aiSettingsOpen && (
+        <AISettingsModal onClose={() => setAiSettingsOpen(false)} />
+      )}
+
+      {/* Tag Manager Modal */}
+      {tagManagerOpen && (
+        <TagManagerModal
+          tags={allTagCounts}
+          onRename={handleRenameTag}
+          onDelete={handleDeleteTag}
+          onClose={() => setTagManagerOpen(false)}
+        />
       )}
     </div>
   )

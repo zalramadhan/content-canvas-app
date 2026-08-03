@@ -13,21 +13,43 @@ import {
 } from 'date-fns'
 import { ChevronLeft, ChevronRight, CalendarDays, Plus, Play } from 'lucide-react'
 import { parseVideoUrl, getPlatformIcon, getPlatformColor, getPlatformName, getVideoPreviewUrl } from '../utils/videoParser'
+import { getStatus } from '../utils/status'
+import { ENTRY_MIME, encodeEntryDrag, decodeEntryDrag, setEntryDragActive, isEntryDragActive } from '../utils/drag'
 
 const DAY_NAMES_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const DAY_NAMES_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const MAX_VISIBLE_PREVIEWS = 3
 
-function DayPreview({ entry }) {
+function DayPreview({ entry, dateKey, onDragStart, onDragEnd }) {
   const [imgError, setImgError] = useState(false)
   const video = parseVideoUrl(entry.url)
   const platformColor = getPlatformColor(video.platform)
   const platformIcon = getPlatformIcon(video.platform)
   const previewUrl = getVideoPreviewUrl(video)
   const hasNotes = entry.notes || entry.concept || entry.hook
+  const status = getStatus(entry.status)
 
   return (
-    <div className="flex items-center gap-1 w-full group/preview">
+    <div
+      className="flex items-center gap-1 w-full group/preview cursor-grab active:cursor-grabbing"
+      draggable
+      title="Seret untuk pindah ke hari lain"
+      onDragStart={(e) => {
+        e.stopPropagation()
+        e.dataTransfer.setData(ENTRY_MIME, encodeEntryDrag(dateKey, entry.id))
+        e.dataTransfer.effectAllowed = 'move'
+        setEntryDragActive(true)
+        onDragStart?.()
+      }}
+      onDragEnd={(e) => {
+        e.stopPropagation()
+        setEntryDragActive(false)
+        onDragEnd?.()
+      }}
+    >
+      {/* Status dot */}
+      <span className={`w-1.5 h-1.5 rounded-full ${status.dot} shrink-0`} title={`Status: ${status.label}`} />
+
       {/* Platform badge */}
       <span
         className="w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0
@@ -64,8 +86,15 @@ function DayPreview({ entry }) {
   )
 }
 
-export default function Calendar({ currentMonth, onMonthChange, onDayClick, getDayEntries, sidebarOpen }) {
+export default function Calendar({ currentMonth, onMonthChange, onDayClick, getDayEntries, sidebarOpen, onMoveEntry, tagFilter }) {
   const [today] = useState(new Date())
+  const [dragOverKey, setDragOverKey] = useState(null)
+  const [isEntryDragging, setIsEntryDragging] = useState(false)
+
+  const clearDrag = () => {
+    setDragOverKey(null)
+    setIsEntryDragging(false)
+  }
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
@@ -147,16 +176,39 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, getD
           {days.map((day, idx) => {
             const inMonth = isSameMonth(day, currentMonth)
             const todayMatch = isSameDay(day, today)
-            const entries = getEntriesForDay(day)
+            const allEntries = getEntriesForDay(day)
+            const entries = tagFilter
+              ? allEntries.filter(e => (e.tags || []).includes(tagFilter))
+              : allEntries
             const contentCount = entries.length
             const isWeekend = day.getDay() === 0 || day.getDay() === 6
             const visiblePreviews = entries.slice(0, MAX_VISIBLE_PREVIEWS)
             const hasMore = entries.length > MAX_VISIBLE_PREVIEWS
+            const cellKey = dateKey(day)
+            const isDropTarget = inMonth && dragOverKey === cellKey
 
             return (
               <button
                 key={idx}
                 onClick={() => onDayClick(day)}
+                onDragOver={(e) => {
+                  if (!inMonth) return
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                  setDragOverKey(cellKey)
+                }}
+                onDragLeave={(e) => {
+                  if (e.currentTarget.contains(e.relatedTarget)) return
+                  setDragOverKey((k) => (k === cellKey ? null : k))
+                }}
+                onDrop={(e) => {
+                  if (!inMonth) return
+                  e.preventDefault()
+                  const data = decodeEntryDrag(e.dataTransfer.getData(ENTRY_MIME))
+                  if (data) onMoveEntry?.(data.dateKey, data.id, cellKey)
+                  setEntryDragActive(false)
+                  clearDrag()
+                }}
                 className={`
                   relative p-1.5 transition-all duration-150
                   flex flex-col items-stretch gap-0.5 group
@@ -166,6 +218,10 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, getD
                   }
                   ${todayMatch
                     ? 'bg-orange-50 dark:bg-orange-900/20 ring-1 ring-inset ring-orange-400 dark:ring-orange-500/50'
+                    : ''
+                  }
+                  ${isDropTarget
+                    ? 'ring-2 ring-inset ring-primary-500 bg-primary-50/70 dark:bg-primary-900/20'
                     : ''
                   }
                   ${contentCount > 0
@@ -205,7 +261,13 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, getD
                 {contentCount > 0 && inMonth && (
                   <div className={`flex-col gap-0.5 mt-0.5 px-0.5 ${sidebarOpen ? 'hidden xs:flex' : 'flex'}`}>
                     {visiblePreviews.map((entry, i) => (
-                      <DayPreview key={entry.id || i} entry={entry} />
+                      <DayPreview
+                        key={entry.id || i}
+                        entry={entry}
+                        dateKey={cellKey}
+                        onDragStart={() => setIsEntryDragging(true)}
+                        onDragEnd={clearDrag}
+                      />
                     ))}
                     {hasMore && (
                       <span className="text-[7px] text-text-muted font-medium pl-[18px]">
@@ -231,6 +293,18 @@ export default function Calendar({ currentMonth, onMonthChange, onDayClick, getD
             )
           })}
         </div>
+
+        {/* Drop hint while dragging an entry */}
+        {(isEntryDragging || isEntryDragActive()) && (
+          <div className="px-4 pb-4 pt-1">
+            <p className="text-[10px] font-medium text-primary-600 dark:text-primary-400
+                            bg-primary-50 dark:bg-primary-900/30
+                            border border-dashed border-primary-300 dark:border-primary-700
+                            rounded-lg py-1.5 text-center">
+              Lepaskan di tanggal tujuan untuk memindahkan konten
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Download, FileText, FileSpreadsheet, ChevronDown, Loader2 } from 'lucide-react'
+import { Download, FileText, FileSpreadsheet, ChevronDown, Loader2, X } from 'lucide-react'
 import { exportToCSV, exportToPDF } from '../utils/exportData'
+import { STATUSES } from '../utils/status'
 
 export default function ExportDropdown({ data, currentYear, currentMonth }) {
   const [open, setOpen] = useState(false)
   const [exporting, setExporting] = useState(null) // 'csv-month' | 'csv-all' | 'pdf-month' | 'pdf-all'
+  const [statusFilter, setStatusFilter] = useState(null) // null = all statuses
   const dropdownRef = useRef(null)
 
   // Close on click outside
@@ -33,9 +35,9 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
 
     try {
       if (type === 'csv') {
-        exportToCSV(data, scope, currentYear, currentMonth)
+        exportToCSV(data, scope, currentYear, currentMonth, statusFilter)
       } else {
-        await exportToPDF(data, scope, currentYear, currentMonth)
+        await exportToPDF(data, scope, currentYear, currentMonth, statusFilter)
       }
     } catch (err) {
       console.error('Export failed:', err)
@@ -48,6 +50,10 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
 
   const isLoading = (type, scope) => exporting === `${type}-${scope}`
 
+  const filterSummary = statusFilter
+    ? STATUSES.find(s => s.id === statusFilter)?.label || statusFilter
+    : null
+
   const options = [
     {
       id: 'csv-month',
@@ -55,7 +61,7 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
       scope: 'month',
       icon: FileSpreadsheet,
       label: 'Export Month as CSV',
-      desc: 'Current month only',
+      desc: filterSummary ? `Bulan ini · ${filterSummary}` : 'Current month only',
     },
     {
       id: 'csv-all',
@@ -63,7 +69,7 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
       scope: 'all',
       icon: FileSpreadsheet,
       label: 'Export All as CSV',
-      desc: 'Complete data',
+      desc: filterSummary ? `Semua data · ${filterSummary}` : 'Complete data',
     },
     {
       id: 'pdf-month',
@@ -71,7 +77,7 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
       scope: 'month',
       icon: FileText,
       label: 'Export Month as PDF',
-      desc: 'Formatted report',
+      desc: filterSummary ? `Bulan ini · ${filterSummary}` : 'Formatted report',
     },
     {
       id: 'pdf-all',
@@ -79,7 +85,7 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
       scope: 'all',
       icon: FileText,
       label: 'Export All as PDF',
-      desc: 'Complete report',
+      desc: filterSummary ? `Semua data · ${filterSummary}` : 'Complete report',
     },
   ]
 
@@ -88,10 +94,14 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
       {/* Toggle Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
+        className="relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
                    text-text-secondary hover:text-text hover:bg-surface-hover
                    rounded-lg transition-all duration-150"
+        title={filterSummary ? `Ekspor (filter: ${filterSummary})` : 'Ekspor'}
       >
+        {statusFilter && (
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary-500 ring-2 ring-surface" />
+        )}
         <Download className="w-3.5 h-3.5" />
         <span className="hidden sm:inline">Export</span>
         <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
@@ -99,10 +109,53 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-56 rounded-xl bg-surface border border-border
+        <div className="absolute right-0 top-full mt-1.5 w-64 rounded-xl bg-surface border border-border
                         shadow-lg shadow-black/5 dark:shadow-black/20 overflow-hidden z-50
                         modal-content origin-top-right"
         >
+          {/* Status filter */}
+          <div className="px-3 pt-3 pb-2 border-b border-border-light">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">Filter status</p>
+              {statusFilter && (
+                <button
+                  onClick={() => setStatusFilter(null)}
+                  className="flex items-center gap-1 text-[10px] font-medium text-text-muted hover:text-text
+                             hover:bg-surface-hover px-1.5 py-0.5 rounded transition-colors"
+                >
+                  <X className="w-2.5 h-2.5" /> Reset
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              <button
+                onClick={() => setStatusFilter(null)}
+                className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all duration-150
+                            ${!statusFilter
+                              ? 'bg-surface-muted text-text border-border'
+                              : 'text-text-muted hover:text-text hover:bg-surface-hover border-border/50'}`}
+              >
+                Semua
+              </button>
+              {STATUSES.map(s => {
+                const active = statusFilter === s.id
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setStatusFilter(active ? null : s.id)}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border transition-all duration-150
+                                ${active
+                                  ? `${s.softBg} ${s.softText} ${s.border}`
+                                  : 'text-text-muted hover:text-text hover:bg-surface-hover border-border/50'}`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                    {s.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div className="p-1.5 space-y-0.5">
             {options.map(opt => {
               const Icon = opt.icon
@@ -142,7 +195,9 @@ export default function ExportDropdown({ data, currentYear, currentMonth }) {
           {/* Footer */}
           <div className="px-3 py-2 border-t border-border-light">
             <p className="text-[10px] text-text-muted text-center">
-              Data exported from your local storage
+              {filterSummary
+                ? `Hanya konten berstatus ${filterSummary} yang diekspor`
+                : 'Data exported from your local storage'}
             </p>
           </div>
         </div>

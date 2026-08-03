@@ -4,11 +4,22 @@ import {
   X, Plus, Trash2, ChevronDown, ChevronUp,
   Lightbulb, Quote, Scissors,
   ExternalLink, GripVertical, Check, Clapperboard, Bookmark, Clock, Image, Link, AlertCircle, Loader2,
-  Hash, BookOpen, Gem, ArrowRight, LayoutGrid, Sparkles
+  Hash, BookOpen, Gem, ArrowRight, LayoutGrid, Sparkles,
+  Copy, Check as CheckIcon, BookMarked, BookmarkPlus, PenLine
 } from 'lucide-react'
 import VideoEmbed from './VideoEmbed'
 import AddVideoForm from './AddVideoForm'
+import StatusBadge from './StatusBadge'
+import CaptionSection from './CaptionSection'
+import AIGenerator from './AIGenerator'
+import TagInput from './TagInput'
+import MetricsSection from './MetricsSection'
+import {
+  loadHashtagSets, addHashtagSetToLibrary, deleteHashtagSetFromLibrary,
+} from '../utils/library'
 import { parseVideoUrl, PLATFORMS } from '../utils/videoParser'
+import { useSmoothExpand } from '../utils/collapse'
+import { ENTRY_MIME, encodeEntryDrag, setEntryDragActive } from '../utils/drag'
 
 // ── Template Storage ──
 const TEMPLATES_KEY = 'sceneTemplates'
@@ -27,20 +38,78 @@ const NOTE_FIELDS = [
   { key: 'concept', label: 'Concept', icon: Lightbulb, color: 'text-amber-500 dark:text-amber-400' },
 ]
 
-// ── Smooth Expand/Collapse Hook ──
-function useSmoothExpand(expanded, duration = 300) {
-  const [visible, setVisible] = useState(expanded)
+// ── Copy-to-another-day button ──
+function DuplicateButton({ dateKey, onDuplicate }) {
+  const [open, setOpen] = useState(false)
+  const [target, setTarget] = useState(dateKey)
+  const [copied, setCopied] = useState(false)
+  const ref = useRef(null)
+  const timerRef = useRef(null)
 
   useEffect(() => {
-    if (expanded) {
-      setVisible(true)
-    } else {
-      const timer = setTimeout(() => setVisible(false), duration)
-      return () => clearTimeout(timer)
+    if (!open) return
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
     }
-  }, [expanded, duration])
+    const timer = setTimeout(() => document.addEventListener('mousedown', handler), 0)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('mousedown', handler)
+    }
+  }, [open])
 
-  return visible
+  useEffect(() => () => clearTimeout(timerRef.current), [])
+
+  const confirm = () => {
+    if (!target) return
+    onDuplicate(target)
+    setOpen(false)
+    setCopied(true)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      {copied ? (
+        <span className="inline-flex items-center gap-1 px-1.5 py-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+          <CheckIcon className="w-3 h-3" /> Copied!
+        </span>
+      ) : (
+        <button
+          onClick={() => setOpen(!open)}
+          className="p-1 rounded-lg text-text-muted hover:text-primary-600 hover:bg-primary-50
+                     dark:hover:bg-primary-900/30 transition-all"
+          title="Copy to another day"
+        >
+          <Copy className="w-3 h-3" />
+        </button>
+      )}
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-56 rounded-xl bg-surface border border-border
+                        shadow-xl shadow-black/10 z-40 p-2.5 space-y-2 modal-content">
+          <p className="text-[11px] font-semibold text-text flex items-center gap-1.5">
+            <Copy className="w-3 h-3 text-primary-500" /> Copy konten ke tanggal
+          </p>
+          <input
+            type="date"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            className="w-full text-xs bg-surface-muted border border-border rounded-lg px-2.5 py-1.5
+                       text-text outline-none focus:border-primary-400 transition-colors"
+          />
+          <button
+            onClick={confirm}
+            className="w-full px-2.5 py-1.5 text-[11px] font-semibold text-white bg-primary-600
+                       hover:bg-primary-500 rounded-lg transition-all active:scale-95"
+          >
+            Copy
+          </button>
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ── Image Reference Preview (compact, for per-scene use) ──
@@ -658,6 +727,25 @@ function StorytellingList({ beats = [], onChange }) {
 // ── Hashtag Input ──
 function HashtagInput({ hashtags = [], onChange }) {
   const [input, setInput] = useState('')
+  const [showLibrary, setShowLibrary] = useState(false)
+  const [librarySets, setLibrarySets] = useState(loadHashtagSets)
+
+  const refreshLibrary = () => setLibrarySets(loadHashtagSets())
+
+  const saveAsSet = () => {
+    if (hashtags.length === 0) return
+    addHashtagSetToLibrary({ name: `${hashtags.length} tag`, tags: hashtags })
+    refreshLibrary()
+  }
+
+  const insertSet = (tags) => {
+    const merged = [...hashtags]
+    for (const t of tags) {
+      if (!merged.includes(t)) merged.push(t)
+    }
+    onChange(merged.slice(0, 30))
+    setShowLibrary(false)
+  }
 
   const addTag = () => {
     let tag = input.trim()
@@ -689,13 +777,65 @@ function HashtagInput({ hashtags = [], onChange }) {
 
   return (
     <div>
-      <label className="text-[10px] font-medium text-text-muted mb-1.5 flex items-center gap-1">
-        <Hash className="w-3 h-3 text-orange-500" />
-        <span>Hashtags / Keywords</span>
-        {hashtags.length > 0 && (
-          <span className="text-[9px] text-orange-400 font-medium">{hashtags.length}</span>
-        )}
-      </label>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-[10px] font-medium text-text-muted flex items-center gap-1">
+          <Hash className="w-3 h-3 text-orange-500" />
+          <span>Hashtags / Keywords</span>
+          {hashtags.length > 0 && (
+            <span className="text-[9px] text-orange-400 font-medium">{hashtags.length}</span>
+          )}
+        </label>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => { setShowLibrary(!showLibrary); refreshLibrary() }}
+            title="Sisip dari library"
+            className={`p-1 rounded-md transition-all ${showLibrary
+              ? 'text-orange-600 bg-orange-50 dark:bg-orange-900/30'
+              : 'text-text-muted hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30'}`}
+          >
+            <BookMarked className="w-3 h-3" />
+          </button>
+          <button
+            onClick={saveAsSet}
+            disabled={hashtags.length === 0}
+            title="Simpan set hashtag ke library"
+            className="p-1 rounded-md text-text-muted hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30
+                       disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            <BookmarkPlus className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {showLibrary && (
+        <div className="rounded-lg border border-border bg-surface-muted/60 p-2 mb-2 space-y-1.5">
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[10px] font-semibold text-text-muted">Hashtag Library ({librarySets.length})</p>
+            <button onClick={() => setShowLibrary(false)} className="p-0.5 text-text-muted hover:text-text">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+          {librarySets.length === 0 && (
+            <p className="text-[11px] text-text-muted px-1 py-1.5">
+              Belum ada set tersimpan. Klik ikon simpan di atas untuk menyimpan hashtag ini.
+            </p>
+          )}
+          {librarySets.map((set) => (
+            <div key={set.id} className="group flex items-start gap-2 px-2 py-1.5 rounded-lg bg-surface border border-border/60 hover:border-orange-300 dark:hover:border-orange-700 transition-colors">
+              <button onClick={() => insertSet(set.tags)} className="flex-1 min-w-0 text-left" title="Sisipkan set">
+                <p className="text-[11px] font-medium text-text truncate">{set.name}</p>
+                <p className="text-[10px] text-text-muted truncate">#{set.tags.join(' #')}</p>
+              </button>
+              <button
+                onClick={() => { deleteHashtagSetFromLibrary(set.id); refreshLibrary() }}
+                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-text-muted hover:text-red-500 transition-all shrink-0"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {hashtags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
@@ -1983,8 +2123,14 @@ function RefEmbed({ url, index, onDelete }) {
   )
 }
 
-function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, onDragEnd, onDrop, isDragging, isDropTarget }) {
-  const [collapsed, setCollapsed] = useState(true)
+function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, onDragEnd, onDrop, isDragging, isDropTarget, onDuplicateEntry, dateKey, onOpenSettings, initiallyExpanded, tagSuggestions }) {
+  const [collapsed, setCollapsed] = useState(!initiallyExpanded)
+  const [editing, setEditing] = useState(false)
+
+  // Expand when focused from search / kanban / notifications
+  useEffect(() => {
+    if (initiallyExpanded) setCollapsed(false)
+  }, [initiallyExpanded])
   const hasNotes = entry.scenes || entry.carousel || entry.strategy || entry.concept || entry.headline
   const isCarousel = entry.contentType === 'carousel'
   const hasUrl = !!(entry.url && entry.url.trim())
@@ -2041,7 +2187,9 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData('text/plain', entry.id)
+    e.dataTransfer.setData(ENTRY_MIME, encodeEntryDrag(dateKey, entry.id))
     e.dataTransfer.effectAllowed = 'move'
+    setEntryDragActive(true)
     requestAnimationFrame(() => {
       onDragStart(entry.id)
     })
@@ -2062,13 +2210,14 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
   }
 
   const handleDragEnd = () => {
+    setEntryDragActive(false)
     onDragEnd()
   }
 
   return (
     <div
       className={`
-        bg-surface-muted/40 rounded-xl border overflow-hidden
+        bg-surface-muted/40 rounded-xl border
         transition-all duration-200
         ${isDragging
           ? 'opacity-40 scale-[0.97] border-primary-500 shadow-lg shadow-primary-500/20'
@@ -2077,15 +2226,35 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
         ${isDropTarget === 'before' ? 'border-t-2 border-t-primary-500' : ''}
         ${isDropTarget === 'after' ? 'border-b-2 border-b-primary-500' : ''}
       `}
-      onClick={() => setCollapsed(!collapsed)}
-      draggable
+      onClick={() => { if (!editing) setCollapsed(!collapsed) }}
+      draggable={!editing}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onDragEnd={handleDragEnd}
     >
-      {/* Collapsed: minimal row view */}
-      {collapsed ? (
+      {/* Edit mode: change headline / URL / type */}
+      {editing ? (
+        <div className="p-3" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-text flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+              ✏️ Edit Idea
+            </h3>
+            <button
+              onClick={() => setEditing(false)}
+              className="text-xs font-medium text-text-muted hover:text-text hover:bg-surface-hover px-2 py-1 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+          <AddVideoForm
+            initial={entry}
+            onSave={(updates) => { onUpdate(entry.id, updates); setEditing(false) }}
+            onCancel={() => setEditing(false)}
+          />
+        </div>
+      ) : collapsed ? (
         <div className="px-3 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span
@@ -2111,6 +2280,7 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
                 🎬 Reel / Shorts
               </span>
             )}
+            <StatusBadge entry={entry} onUpdate={updateField} size="sm" />
             {hasNotes && (
               <span className="text-xs text-text truncate min-w-0">
                 {getCollapsedPreview()}
@@ -2118,6 +2288,13 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
             )}
           </div>
           <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditing(true) }}
+              className="p-1 rounded-lg text-text-muted hover:text-primary-600 hover:bg-primary-50 transition-all"
+              title="Edit idea"
+            >
+              <PenLine className="w-3 h-3" />
+            </button>
             <a
               href={entry.url}
               target="_blank"
@@ -2170,6 +2347,7 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
                     🎬 Reel / Shorts
                   </span>
                 )}
+                <StatusBadge entry={entry} onUpdate={updateField} size="sm" />
                 {/* Headline title — beside badge */}
                 {entry.headline && (
                   <span className="text-sm font-semibold text-text truncate min-w-0" onClick={(e) => e.stopPropagation()}>
@@ -2186,6 +2364,7 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
                 >
                   <ExternalLink className="w-3 h-3" />
                 </a>
+                <DuplicateButton dateKey={dateKey} onDuplicate={(target) => onDuplicateEntry?.(dateKey, entry.id, target)} />
                 <button
                   onClick={() => onDelete(entry.id)}
                   className="p-1 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all"
@@ -2221,6 +2400,22 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
               hasUrl={hasUrl}
             />
 
+            {/* Caption + AI assistant */}
+            <CaptionSection entry={entry} onUpdate={updateField} onOpenSettings={onOpenSettings} />
+            <AIGenerator entry={entry} onUpdate={updateField} onOpenSettings={onOpenSettings} />
+
+            {/* Metrics */}
+            <MetricsSection entry={entry} onUpdate={updateField} />
+
+            {/* Tags / Categories */}
+            <div className="mt-3 first:mt-0 border border-border/70 rounded-lg px-3 py-2">
+              <TagInput
+                tags={entry.tags || []}
+                onChange={(tags) => updateField('tags', tags)}
+                suggestions={tagSuggestions}
+              />
+            </div>
+
             {/* Content Strategy (hidden for carousel) */}
             {!isCarousel && (
               <ContentStrategy
@@ -2249,7 +2444,7 @@ function VideoCard({ entry, onUpdate, onDelete, index, onDragStart, onDragOver, 
   )
 }
 
-export default function DaySidebar({ date, entries, onAddEntry, onUpdateEntry, onDeleteEntry, onReorderEntry, onClose }) {
+export default function DaySidebar({ date, entries, onAddEntry, onUpdateEntry, onDeleteEntry, onReorderEntry, onClose, onDuplicateEntry, focusEntryId, onOpenSettings, tagSuggestions }) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [dragState, setDragState] = useState({ draggedId: null, targetId: null, position: null })
   const dateStr = format(date, 'EEEE, MMMM d, yyyy')
@@ -2416,6 +2611,7 @@ export default function DaySidebar({ date, entries, onAddEntry, onUpdateEntry, o
                 <VideoCard
                   entry={entry}
                   index={idx}
+                  dateKey={format(date, 'yyyy-MM-dd')}
                   onUpdate={(id, updated) => onUpdateEntry(date, id, updated)}
                   onDelete={(id) => onDeleteEntry(date, id)}
                   onDragStart={handleDragStart}
@@ -2424,6 +2620,10 @@ export default function DaySidebar({ date, entries, onAddEntry, onUpdateEntry, o
                   onDrop={handleDrop}
                   isDragging={isDragging}
                   isDropTarget={isDropTarget}
+                  onDuplicateEntry={onDuplicateEntry}
+                  onOpenSettings={onOpenSettings}
+                  initiallyExpanded={focusEntryId === entry.id}
+                  tagSuggestions={tagSuggestions}
                 />
               </div>
             )
