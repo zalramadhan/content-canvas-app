@@ -79,7 +79,7 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - Tetap bisa **offline** (data disimpan juga di localStorage perangkat)
 
 ### 🌗 Lainnya
-- **Menu hamburger** (☰) berisi: navigasi, search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar
+- **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
 - Notifikasi, Undo/Redo, dan AI Assistant selalu terlihat di navbar
 - Dark mode (otomatis ikut sistem + bisa diubah manual dari menu hamburger)
 - PWA — bisa **di-install** ke layar beranda HP seperti aplikasi native

@@ -155,19 +155,19 @@ export default function Dashboard({ data, onOpenDate }) {
   const platformMax = Math.max(1, ...Object.values(stats.platforms))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {statCards.map((c) => {
           const Icon = c.icon
           return (
-            <div key={c.label} className="bg-surface rounded-2xl border border-border/50 p-4 sm:p-5
+            <div key={c.label} className="min-w-0 bg-surface rounded-2xl border border-border/50 p-4 sm:p-5
                                             hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200">
               <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center
-                              shadow-lg shadow-black/5 mb-3`}>
+                              shadow-lg shadow-black/5 mb-3 shrink-0`}>
                 <Icon className="w-4 h-4 text-white" />
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-text tracking-tight">{c.value}</p>
+              <p className="text-xl sm:text-3xl font-bold text-text tracking-tight truncate">{c.value}</p>
               <p className="text-[11px] font-medium text-text-muted mt-0.5">{c.label}</p>
               <p className="text-[10px] text-text-muted/70 mt-0.5">{c.sub}</p>
             </div>
@@ -177,9 +177,9 @@ export default function Dashboard({ data, onOpenDate }) {
 
       <div className="grid lg:grid-cols-3 gap-4">
         {/* Trend last 6 months */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-5">
+        <div className="min-w-0 bg-surface rounded-2xl border border-border/50 p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
-            <TrendingUp className="w-3.5 h-3.5 text-primary-500" /> Tren 6 bulan
+            <TrendingUp className="w-3.5 h-3.5 text-primary-500 shrink-0" /> Tren 6 bulan
           </h3>
           <div className="flex items-end gap-3 h-28">
             {stats.trend.map((t) => (
@@ -200,9 +200,9 @@ export default function Dashboard({ data, onOpenDate }) {
         </div>
 
         {/* Weekday distribution */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-5">
+        <div className="min-w-0 bg-surface rounded-2xl border border-border/50 p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
-            <CalendarDays className="w-3.5 h-3.5 text-orange-500" /> Hari paling produktif
+            <CalendarDays className="w-3.5 h-3.5 text-orange-500 shrink-0" /> Hari paling produktif
           </h3>
           <div className="space-y-2">
             {stats.weekdays.map((count, i) => (
@@ -221,9 +221,9 @@ export default function Dashboard({ data, onOpenDate }) {
         </div>
 
         {/* Status pipeline */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-5">
+        <div className="min-w-0 bg-surface rounded-2xl border border-border/50 p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
-            <ListChecks className="w-3.5 h-3.5 text-violet-500" /> Pipeline produksi
+            <ListChecks className="w-3.5 h-3.5 text-violet-500 shrink-0" /> Pipeline produksi
           </h3>
           <div className="space-y-2">
             {STATUSES.map((s) => {
@@ -246,7 +246,7 @@ export default function Dashboard({ data, onOpenDate }) {
 
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Platform breakdown */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-4 sm:p-5">
+        <div className="min-w-0 bg-surface rounded-2xl border border-border/50 p-4 sm:p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
             <Play className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Breakdown platform
           </h3>
@@ -294,7 +294,7 @@ export default function Dashboard({ data, onOpenDate }) {
         </div>
 
         {/* Upcoming */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-4 sm:p-5">
+        <div className="min-w-0 bg-surface rounded-2xl border border-border/50 p-4 sm:p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
             <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Jadwal 7 hari ke depan
           </h3>
@@ -339,9 +339,9 @@ export default function Dashboard({ data, onOpenDate }) {
       {/* Content performance */}
       <div className="grid lg:grid-cols-3 gap-4">
         {/* Metrics summary */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-5">
+        <div className="min-w-0 bg-surface rounded-2xl border border-border/50 p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
-            <Trophy className="w-3.5 h-3.5 text-amber-500" /> Ringkasan metrik
+            <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Ringkasan metrik
           </h3>
           {stats.hasMetrics ? (
             <div className="grid grid-cols-2 gap-2.5">
@@ -369,9 +369,9 @@ export default function Dashboard({ data, onOpenDate }) {
         </div>
 
         {/* Top content */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-5">
+        <div className="min-w-0 bg-surface rounded-2xl border border-border/50 p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> Top konten (views)
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Top konten (views)
           </h3>
           {stats.topFive.length > 0 ? (
             <div className="space-y-2.5">
@@ -395,9 +395,9 @@ export default function Dashboard({ data, onOpenDate }) {
         </div>
 
         {/* Views trend */}
-        <div className="bg-surface rounded-2xl border border-border/50 p-5">
+        <div className="min-w-0 bg-surface rounded-2xl border border-border/50 p-5">
           <h3 className="text-xs font-bold text-text flex items-center gap-1.5 mb-4">
-            <Eye className="w-3.5 h-3.5 text-sky-500" /> Tren views 6 bulan
+            <Eye className="w-3.5 h-3.5 text-sky-500 shrink-0" /> Tren views 6 bulan
           </h3>
           <div className="flex items-end gap-3 h-28">
             {stats.viewsTrend.map((t) => (

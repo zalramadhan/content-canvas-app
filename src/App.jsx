@@ -258,28 +258,6 @@ function App() {
               </div>
             </div>
 
-            {/* Center navigation - hidden on mobile */}
-            <nav className="hidden md:flex items-center gap-1.5">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const active = activeView === item.id
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveView(item.id)}
-                    className={`px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2
-                                transition-all duration-150 active:scale-[0.97]
-                                ${active
-                                  ? 'text-white bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/30'
-                                  : 'text-text-muted hover:text-text hover:bg-surface-hover font-medium'}`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    {item.label}
-                  </button>
-                )
-              })}
-            </nav>
-
             {/* Right side */}
             <div className="flex items-center gap-1.5">
               {/* Undo / Redo */}
