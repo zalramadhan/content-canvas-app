@@ -124,9 +124,10 @@ export default function FinanceTracker({
       const m = subMonths(month, i)
       months.push({ key: monthPrefix(m), label: format(m, 'MMM'), income: 0, expense: 0 })
     }
+    const buckets = new Map(months.map(m => [m.key, m]))
     for (const t of transactions) {
       if (t.type === 'transfer') continue
-      const bucket = months.find(b => b.key === (t.date || '').slice(0, 7))
+      const bucket = buckets.get((t.date || '').slice(0, 7))
       if (!bucket) continue
       if (t.type === 'income') bucket.income += t.amount
       else bucket.expense += t.amount
@@ -358,6 +359,7 @@ function SummaryTab({ month, monthIncome, monthExpense, net, totalWallet, expens
   const maxCat = expenseByCat[0]?.[1] || 0
   const totalBudget = monthBudgets.reduce((s, b) => s + b.amount, 0)
   const spentBudgeted = monthBudgets.reduce((s, b) => s + budgetSpent(b.category), 0)
+  const trendTotal = trend.reduce((s, m) => s + m.income + m.expense, 0)
 
   return (
     <div className="space-y-4">
@@ -387,7 +389,7 @@ function SummaryTab({ month, monthIncome, monthExpense, net, totalWallet, expens
             </span>
           </div>
         </div>
-        {trend.reduce((s, m) => s + m.income + m.expense, 0) === 0 ? (
+        {trendTotal === 0 ? (
           <p className="text-xs text-text-muted py-8 text-center">
             Belum ada data untuk tren. Catat transaksi untuk melihat grafik 6 bulan.
           </p>
