@@ -98,6 +98,8 @@ function App() {
     deleteWallet,
     addTransaction,
     deleteTransaction,
+    updateTransaction,
+    addTransfer,
     addBudget,
     deleteBudget,
   } = useFinance({ userId })
@@ -567,6 +569,8 @@ function App() {
             onDeleteWallet={deleteWallet}
             onAddTransaction={addTransaction}
             onDeleteTransaction={deleteTransaction}
+            onUpdateTransaction={updateTransaction}
+            onAddTransfer={addTransfer}
             onAddBudget={addBudget}
             onDeleteBudget={deleteBudget}
           />

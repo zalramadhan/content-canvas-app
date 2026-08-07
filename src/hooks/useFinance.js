@@ -232,6 +232,33 @@ export function useFinance({ userId } = {}) {
     }))
   }, [commit])
 
+  const updateTransaction = useCallback((id, updates) => {
+    commit(prev => ({
+      ...prev,
+      transactions: (prev.transactions || []).map(t =>
+        t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+      ),
+    }))
+  }, [commit])
+
+  /** Transfer antar dompet: pengeluaran dari satu dompet, pemasukan ke dompet lain. */
+  const addTransfer = useCallback(({ fromWalletId, toWalletId, amount, date, note }) => {
+    if (!fromWalletId || !toWalletId || fromWalletId === toWalletId) return
+    const tx = {
+      id: newId(),
+      type: 'transfer',
+      amount: Math.max(0, Number(amount) || 0),
+      fromWalletId,
+      toWalletId,
+      date: String(date || new Date().toISOString().slice(0, 10)),
+      note: String(note || '').trim(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    if (tx.amount <= 0) return
+    commit(prev => ({ ...prev, transactions: [...(prev.transactions || []), tx] }))
+  }, [commit])
+
   // ── Budgets (per kategori per bulan) ──
   const addBudget = useCallback(({ category, amount, month }) => {
     const budget = {
@@ -283,6 +310,8 @@ export function useFinance({ userId } = {}) {
     deleteWallet,
     addTransaction,
     deleteTransaction,
+    updateTransaction,
+    addTransfer,
     addBudget,
     deleteBudget,
   }

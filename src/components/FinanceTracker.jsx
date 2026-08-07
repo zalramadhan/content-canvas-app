@@ -52,6 +52,8 @@ export default function FinanceTracker({
   onDeleteWallet,
   onAddTransaction,
   onDeleteTransaction,
+  onUpdateTransaction,
+  onAddTransfer,
   onAddBudget,
   onDeleteBudget,
 }) {
@@ -60,7 +62,8 @@ export default function FinanceTracker({
     const d = new Date()
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
-  const [txModal, setTxModal] = useState(null) // null | { type }
+  const [txModal, setTxModal] = useState(null) // null | { type } | { editing }
+  const [transferModal, setTransferModal] = useState(null) // null | {} | { editing }
   const [walletModal, setWalletModal] = useState(null) // null | wallet (edit)
   const [budgetModal, setBudgetModal] = useState(false)
   const [confirmTxId, setConfirmTxId] = useState(null)
@@ -78,6 +81,12 @@ export default function FinanceTracker({
   const walletBalance = (wallet) => {
     if (!wallet) return 0
     return transactions.reduce((sum, t) => {
+      // Transfer: keluar dari dompet asal, masuk ke dompet tujuan
+      if (t.type === 'transfer') {
+        if (t.fromWalletId === wallet.id) return sum - t.amount
+        if (t.toWalletId === wallet.id) return sum + t.amount
+        return sum
+      }
       if (t.walletId !== wallet.id) return sum
       return sum + (t.type === 'income' ? t.amount : -t.amount)
     }, wallet.initialBalance || 0)
@@ -123,6 +132,12 @@ export default function FinanceTracker({
     { id: 'dompet', label: 'Dompet', icon: Wallet },
   ]
 
+  // Edit transaksi: transfer dibuka lewat modal transfer, sisanya modal transaksi
+  const handleEditTx = (tx) => {
+    if (tx.type === 'transfer') setTransferModal({ editing: tx })
+    else setTxModal({ editing: tx })
+  }
+
   return (
     <div className="space-y-5">
       {/* ── Toolbar ── */}
@@ -164,6 +179,19 @@ export default function FinanceTracker({
               Hari ini
             </button>
           </div>
+
+          {/* Transfer antar dompet */}
+          <button
+            onClick={() => setTransferModal({})}
+            disabled={wallets.length < 2}
+            title={wallets.length < 2 ? 'Buat minimal 2 dompet dulu untuk transfer' : 'Transfer antar dompet'}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-muted border border-border
+                       text-text-secondary hover:text-text disabled:opacity-40 disabled:cursor-not-allowed
+                       text-xs font-semibold transition-all duration-150 active:scale-[0.97]"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            Transfer
+          </button>
 
           {/* Tambah transaksi */}
           <button
@@ -217,6 +245,7 @@ export default function FinanceTracker({
           wallets={wallets}
           walletById={walletById}
           onAdd={() => setTxModal({ type: 'expense' })}
+          onEdit={handleEditTx}
           onDelete={onDeleteTransaction}
           confirmTxId={confirmTxId}
           setConfirmTxId={setConfirmTxId}
@@ -250,10 +279,28 @@ export default function FinanceTracker({
       {/* ── Modal transaksi ── */}
       {txModal && (
         <TransactionModal
-          initialType={txModal.type}
+          initial={txModal.editing || null}
           wallets={wallets}
           onClose={() => setTxModal(null)}
-          onSave={(payload) => { onAddTransaction(payload); setTxModal(null) }}
+          onSave={(payload) => {
+            if (txModal.editing) onUpdateTransaction(txModal.editing.id, payload)
+            else onAddTransaction(payload)
+            setTxModal(null)
+          }}
+        />
+      )}
+
+      {/* ── Modal transfer ── */}
+      {transferModal && (
+        <TransferModal
+          initial={transferModal.editing || null}
+          wallets={wallets}
+          onClose={() => setTransferModal(null)}
+          onSave={(payload) => {
+            if (transferModal.editing) onUpdateTransaction(transferModal.editing.id, payload)
+            else onAddTransfer(payload)
+            setTransferModal(null)
+          }}
         />
       )}
 
@@ -372,6 +419,22 @@ function SummaryTab({ month, monthIncome, monthExpense, net, totalWallet, expens
             <div className="space-y-1">
               {monthTx.slice(0, 6).map(t => {
                 const w = walletById(t.walletId)
+                if (t.type === 'transfer') {
+                  const fromW = walletById(t.fromWalletId)
+                  const toW = walletById(t.toWalletId)
+                  return (
+                    <div key={t.id} className="flex items-center gap-2.5 py-1.5">
+                      <span className="text-base shrink-0">🔄</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-text truncate">{t.note || 'Transfer'}</p>
+                        <p className="text-[10px] text-text-muted">
+                          {fromW ? fromW.emoji : ''} {fromW?.name || '—'} → {toW ? toW.emoji : ''} {toW?.name || '—'} · {t.date}
+                        </p>
+                      </div>
+                      <span className="text-xs font-semibold shrink-0 text-sky-600 dark:text-sky-400">⇄ {fmtIDR(t.amount)}</span>
+                    </div>
+                  )
+                }
                 return (
                   <div key={t.id} className="flex items-center gap-2.5 py-1.5">
                     <span className="text-base shrink-0">{catEmoji(t.category)}</span>
@@ -396,7 +459,7 @@ function SummaryTab({ month, monthIncome, monthExpense, net, totalWallet, expens
 }
 
 /* ═══════════════════ TRANSAKSI ═══════════════════ */
-function TransactionsTab({ monthTx, wallets, walletById, onAdd, onDelete, confirmTxId, setConfirmTxId }) {
+function TransactionsTab({ monthTx, wallets, walletById, onAdd, onEdit, onDelete, confirmTxId, setConfirmTxId }) {
   const [catFilter, setCatFilter] = useState('all')
   const [walletFilter, setWalletFilter] = useState('all')
 
@@ -410,10 +473,14 @@ function TransactionsTab({ monthTx, wallets, walletById, onAdd, onDelete, confir
     if (walletFilter !== 'all' && !wallets.some(w => w.id === walletFilter)) setWalletFilter('all')
   }, [wallets, walletFilter])
 
-  const filtered = monthTx.filter(t =>
-    (catFilter === 'all' || t.category === catFilter) &&
-    (walletFilter === 'all' || t.walletId === walletFilter)
-  )
+  const filtered = monthTx.filter(t => {
+    if (catFilter !== 'all' && t.category !== catFilter) return false
+    if (walletFilter === 'all') return true
+    if (t.type === 'transfer') {
+      return t.fromWalletId === walletFilter || t.toWalletId === walletFilter
+    }
+    return t.walletId === walletFilter
+  })
 
   if (monthTx.length === 0) {
     return (
@@ -470,18 +537,37 @@ function TransactionsTab({ monthTx, wallets, walletById, onAdd, onDelete, confir
           <p className="text-xs text-text-muted py-10 text-center">Tidak ada transaksi yang cocok.</p>
         ) : filtered.map(t => {
           const w = walletById(t.walletId)
+          const isTransfer = t.type === 'transfer'
+          const fromW = walletById(t.fromWalletId)
+          const toW = walletById(t.toWalletId)
           return (
             <div key={t.id} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-muted/50 transition-colors">
-              <span className="text-lg shrink-0">{catEmoji(t.category)}</span>
+              <span className="text-lg shrink-0">{isTransfer ? '🔄' : catEmoji(t.category)}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-text truncate">{t.note || t.category}</p>
-                <p className="text-[10px] text-text-muted">
-                  {catEmoji(t.category)} {t.category} · {w ? `${w.emoji} ${w.name}` : (t.walletId ? 'Dompet terhapus' : 'Tanpa dompet')} · {t.date}
+                <p className="text-xs font-medium text-text truncate">
+                  {isTransfer ? (t.note || 'Transfer') : (t.note || t.category)}
                 </p>
+                {isTransfer ? (
+                  <p className="text-[10px] text-text-muted">
+                    {fromW ? `${fromW.emoji} ${fromW.name}` : 'Dompet terhapus'} → {toW ? `${toW.emoji} ${toW.name}` : 'Dompet terhapus'} · {t.date}
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-text-muted">
+                    {catEmoji(t.category)} {t.category} · {w ? `${w.emoji} ${w.name}` : (t.walletId ? 'Dompet terhapus' : 'Tanpa dompet')} · {t.date}
+                  </p>
+                )}
               </div>
-              <span className={`text-xs font-bold shrink-0 ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
-                {t.type === 'income' ? '+' : '−'}{fmtIDR(t.amount)}
+              <span className={`text-xs font-bold shrink-0 ${isTransfer ? 'text-sky-600 dark:text-sky-400' : (t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500')}`}>
+                {isTransfer ? '⇄ ' : (t.type === 'income' ? '+' : '−')}{fmtIDR(t.amount)}
               </span>
+              <button
+                onClick={() => onEdit(t)}
+                className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors shrink-0"
+                aria-label="Edit transaksi"
+                title="Edit"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
               {confirmTxId === t.id ? (
                 <span className="flex items-center gap-1 shrink-0">
                   <button
@@ -699,13 +785,13 @@ function WalletsTab({ wallets, walletBalance, totalWallet, onAdd, onEdit, onDele
 }
 
 /* ═══════════════════ MODAL TRANSAKSI ═══════════════════ */
-function TransactionModal({ initialType, wallets, onSave, onClose }) {
-  const [type, setType] = useState(initialType || 'expense')
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState(type === 'income' ? 'Gaji' : 'Makanan')
-  const [walletId, setWalletId] = useState(wallets[0]?.id || '')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [note, setNote] = useState('')
+function TransactionModal({ initial, wallets, onSave, onClose }) {
+  const [type, setType] = useState(initial?.type || 'expense')
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
+  const [category, setCategory] = useState(initial?.category || (type === 'income' ? 'Gaji' : 'Makanan'))
+  const [walletId, setWalletId] = useState(initial?.walletId || wallets[0]?.id || '')
+  const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10))
+  const [note, setNote] = useState(initial?.note || '')
 
   const cats = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
@@ -728,7 +814,7 @@ function TransactionModal({ initialType, wallets, onSave, onClose }) {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-bold text-text">Transaksi baru</h3>
+          <h3 className="text-base font-bold text-text">{initial ? 'Edit transaksi' : 'Transaksi baru'}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors" aria-label="Tutup">
             <X className="w-4 h-4" />
           </button>
@@ -845,7 +931,7 @@ function TransactionModal({ initialType, wallets, onSave, onClose }) {
             <button type="submit" disabled={!amount || Number(amount) <= 0}
               className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50
                          text-white text-sm font-semibold shadow-sm shadow-orange-500/20 transition-all duration-150 active:scale-[0.98]">
-              Simpan
+              {initial ? 'Simpan perubahan' : 'Simpan'}
             </button>
           </div>
         </form>
@@ -1040,6 +1126,144 @@ function BudgetModal({ initialMonth, onSave, onClose }) {
               className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50
                          text-white text-sm font-semibold shadow-sm shadow-orange-500/20 transition-all duration-150 active:scale-[0.98]">
               Simpan budget
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════ MODAL TRANSFER ═══════════════════ */
+function TransferModal({ initial, wallets, onSave, onClose }) {
+  const [fromId, setFromId] = useState(initial?.fromWalletId || wallets[0]?.id || '')
+  const [toId, setToId] = useState(initial?.toWalletId || wallets[1]?.id || '')
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
+  const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10))
+  const [note, setNote] = useState(initial?.note || '')
+
+  const canSubmit = fromId && toId && fromId !== toId && Number(amount) > 0
+
+  const swap = () => {
+    setFromId(toId)
+    setToId(fromId)
+  }
+
+  const submit = (e) => {
+    e.preventDefault()
+    if (!canSubmit) return
+    onSave({ fromWalletId: fromId, toWalletId: toId, amount: Number(amount), date, note })
+  }
+
+  return (
+    <div className="modal-overlay flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="modal-content w-full max-w-md bg-surface rounded-2xl border border-border/60 shadow-xl p-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-base font-bold text-text flex items-center gap-2">
+            <ArrowLeftRight className="w-4 h-4 text-sky-500" />
+            {initial ? 'Edit transfer' : 'Transfer antar dompet'}
+          </h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors" aria-label="Tutup">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="space-y-4">
+          {/* Dari → Ke */}
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <label className="text-[11px] font-medium text-text-muted mb-1.5 block">Dari dompet</label>
+              <select
+                value={fromId}
+                onChange={(e) => setFromId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface-muted/50 outline-none text-sm text-text
+                           focus:border-orange-400 transition-colors"
+              >
+                {wallets.filter(w => w.id !== toId).map(w => (
+                  <option key={w.id} value={w.id}>{w.emoji} {w.name}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={swap}
+              className="mb-0.5 p-2.5 rounded-lg bg-surface-muted border border-border text-text-muted hover:text-sky-500
+                         hover:border-sky-300 transition-colors"
+              aria-label="Tukar dari dan ke"
+              title="Tukar arah"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+            </button>
+            <div className="flex-1">
+              <label className="text-[11px] font-medium text-text-muted mb-1.5 block">Ke dompet</label>
+              <select
+                value={toId}
+                onChange={(e) => setToId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface-muted/50 outline-none text-sm text-text
+                           focus:border-orange-400 transition-colors"
+              >
+                {wallets.filter(w => w.id !== fromId).map(w => (
+                  <option key={w.id} value={w.id}>{w.emoji} {w.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Jumlah */}
+          <div>
+            <label className="text-[11px] font-medium text-text-muted mb-1.5 block">Jumlah (Rp)</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="any"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="cth: 100000"
+              autoFocus
+              className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface-muted/50 outline-none text-sm text-text
+                         placeholder:text-text-muted focus:border-orange-400 transition-colors"
+            />
+          </div>
+
+          {/* Tanggal */}
+          <div>
+            <label className="text-[11px] font-medium text-text-muted mb-1.5 block">Tanggal</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface-muted/50 outline-none text-sm text-text
+                         focus:border-orange-400 transition-colors"
+            />
+          </div>
+
+          {/* Catatan */}
+          <div>
+            <label className="text-[11px] font-medium text-text-muted mb-1.5 block">Catatan (opsional)</label>
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="cth: Pindah ke tabungan"
+              maxLength={80}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface-muted/50 outline-none text-sm text-text
+                         placeholder:text-text-muted focus:border-orange-400 transition-colors"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl bg-surface-muted text-text-muted hover:text-text text-sm font-medium transition-colors">
+              Batal
+            </button>
+            <button type="submit" disabled={!canSubmit}
+              className="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 disabled:opacity-50
+                         text-white text-sm font-semibold shadow-sm shadow-sky-500/20 transition-all duration-150 active:scale-[0.98]">
+              {initial ? 'Simpan perubahan' : 'Transfer'}
             </button>
           </div>
         </form>
