@@ -3,7 +3,7 @@ import { Download, FileText, FileSpreadsheet, ChevronDown, Loader2, X } from 'lu
 import { exportToCSV, exportToPDF } from '../utils/exportData'
 import { STATUSES } from '../utils/status'
 
-export default function ExportDropdown({ data, currentYear, currentMonth, embedded = false }) {
+export default function ExportDropdown({ data, currentYear, currentMonth, embedded = false, variant = 'default' }) {
   const [open, setOpen] = useState(false)
   const [exporting, setExporting] = useState(null) // 'csv-month' | 'csv-all' | 'pdf-month' | 'pdf-all'
   const [statusFilter, setStatusFilter] = useState(null) // null = all statuses
@@ -194,17 +194,18 @@ export default function ExportDropdown({ data, currentYear, currentMonth, embedd
       {/* Toggle Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
-                   text-text-secondary hover:text-text hover:bg-surface-hover
-                   rounded-lg transition-all duration-150"
+        className={`relative flex items-center transition-all duration-150 rounded-lg
+                    ${variant === 'nav'
+                      ? 'w-full justify-start gap-3 px-3 py-2 text-[13px] font-medium text-text-muted hover:text-text hover:bg-surface-hover'
+                      : 'gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text hover:bg-surface-hover'}`}
         title={filterSummary ? `Ekspor (filter: ${filterSummary})` : 'Ekspor'}
       >
         {statusFilter && (
           <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary-500 ring-2 ring-surface" />
         )}
         <Download className="w-3.5 h-3.5" />
-        <span className="hidden sm:inline">Export</span>
-        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <span className={variant === 'nav' ? 'inline' : 'hidden sm:inline'}>Export</span>
+        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''} ${variant === 'nav' ? 'ml-auto' : ''}`} />
       </button>
 
       {/* Dropdown */}

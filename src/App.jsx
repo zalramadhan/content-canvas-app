@@ -688,6 +688,15 @@ function App() {
                         </button>
                       )
                     })}
+                    {/* Ekspor — ikut di dalam grup Content Creator */}
+                    <div className="pt-2 mt-1 border-t border-border-light/60">
+                      <ExportDropdown
+                        variant="nav"
+                        data={data}
+                        currentYear={currentMonth.getFullYear()}
+                        currentMonth={currentMonth.getMonth()}
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -728,16 +737,6 @@ function App() {
                 </button>
               </div>
 
-              {/* Export */}
-              <div>
-                <p className="px-1 mb-1.5 text-[10px] font-semibold text-text-muted uppercase tracking-wide">Ekspor</p>
-                <ExportDropdown
-                  embedded
-                  data={data}
-                  currentYear={currentMonth.getFullYear()}
-                  currentMonth={currentMonth.getMonth()}
-                />
-              </div>
             </div>
 
             {/* Drawer Footer */}
