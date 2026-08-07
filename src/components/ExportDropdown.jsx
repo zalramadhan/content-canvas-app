@@ -25,7 +25,7 @@ export default function ExportDropdown({ data, currentYear, currentMonth, varian
       clearTimeout(timer)
       document.removeEventListener('mousedown', handler)
     }
-  }, [open, embedded])
+  }, [open])
 
   const handleExport = async (type, scope) => {
     setExporting(`${type}-${scope}`)
