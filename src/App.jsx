@@ -9,7 +9,7 @@ import {
   CalendarDays, Video, PenSquare,
   Menu, LayoutDashboard, Sun, Moon, X,
   Loader2, LogOut, Cloud, CloudCheck, CloudOff,
-  Search, Sparkles, Undo2, Redo2, LayoutGrid, CheckCircle2,
+  Search, Sparkles, Undo2, Redo2, LayoutGrid, CheckCircle2, User,
 } from 'lucide-react'
 import Calendar from './components/Calendar'
 import DaySidebar from './components/DaySidebar'
@@ -23,6 +23,7 @@ import AISettingsModal from './components/AISettingsModal'
 import TagFilterBar from './components/TagFilterBar'
 import TagManagerModal from './components/TagManagerModal'
 import HabitTracker from './components/HabitTracker'
+import ProfileSettings from './components/ProfileSettings'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useHabits } from './hooks/useHabits'
 import { useTheme } from './hooks/useTheme'
@@ -92,6 +93,7 @@ function App() {
   const [focusEntryId, setFocusEntryId] = useState(null)
   const [tagFilter, setTagFilter] = useState(null)
   const [tagManagerOpen, setTagManagerOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const allTagCounts = getAllTags(data)
   const tagSuggestions = allTagCounts.map(t => t.name)
@@ -107,6 +109,13 @@ function App() {
     // Clear the filter if the deleted tag was active
     if (tagFilter === tag) setTagFilter(null)
   }, [deleteTag, tagFilter])
+
+  // ── Profil (dari Supabase auth user_metadata — sinkron antar perangkat) ──
+  const user = session?.user
+  const meta = user?.user_metadata || {}
+  const displayName = meta.displayName || (user?.email ? user.email.split('@')[0] : 'Pengguna')
+  const avatarEmoji = meta.avatarEmoji || '👤'
+  const avatarColor = meta.avatarColor || '#f97316'
 
   const monthDateKeys = getMonthDateKeys(
     currentMonth.getFullYear(),
@@ -606,6 +615,25 @@ function App() {
 
             {/* Drawer Footer */}
             <div className="px-3 py-3 border-t border-border-light space-y-1">
+              {/* Profil: avatar + nama (klik untuk membuka pengaturan) */}
+              <button
+                onClick={() => { setProfileOpen(true); setMenuOpen(false) }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
+                           bg-surface-muted hover:bg-surface-hover transition-colors"
+              >
+                <span
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0 shadow-sm"
+                  style={{ backgroundColor: avatarColor }}
+                >
+                  {avatarEmoji}
+                </span>
+                <span className="min-w-0 text-left flex-1">
+                  <span className="block text-xs font-semibold text-text truncate">{displayName}</span>
+                  <span className="block text-[10px] text-text-muted truncate">{user?.email}</span>
+                </span>
+                <User className="w-3.5 h-3.5 text-text-muted shrink-0" />
+              </button>
+
               <button
                 onClick={toggleTheme}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-muted hover:text-text
@@ -654,6 +682,14 @@ function App() {
           onRename={handleRenameTag}
           onDelete={handleDeleteTag}
           onClose={() => setTagManagerOpen(false)}
+        />
+      )}
+
+      {/* Profile Settings Modal */}
+      {profileOpen && (
+        <ProfileSettings
+          user={user}
+          onClose={() => setProfileOpen(false)}
         />
       )}
     </div>

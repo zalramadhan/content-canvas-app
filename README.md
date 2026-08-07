@@ -87,6 +87,11 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - Tetap bisa **offline** (data disimpan juga di localStorage perangkat)
 - **Keamanan login**: password minimal **8 karakter** (dengan indikator kekuatan saat daftar) + **rate-limit** — setelah 5 percobaan gagal dalam 10 menit, login dikunci sementara 60 detik dengan hitung mundur
 
+### 👤 Pengaturan Profil
+- **Nama tampilan**, **avatar emoji + warna**, dan **preferensi bahasa** — dibuka dari menu hamburger (☰) → kartu profil di bagian bawah
+- Preview avatar live sebelum disimpan, disimpan ke **Supabase Auth (user_metadata)** → otomatis sinkron ke semua perangkat **tanpa perlu tabel SQL baru**
+- Avatar & nama tampil di menu hamburger dan mengikuti akun di mana pun kamu login
+
 ### 🌗 Lainnya
 - **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard/**Habits**), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
 - Notifikasi, Undo/Redo, dan AI Assistant selalu terlihat di navbar
