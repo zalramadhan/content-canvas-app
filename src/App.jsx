@@ -123,7 +123,7 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [menuOpen, setMenuOpen] = useState(false)
-  const [activeView, setActiveView] = useState('calendar') // 'calendar' | 'kanban' | 'dashboard'
+  const [activeView, setActiveView] = useState('calendar') // 'calendar' | 'kanban' | 'dashboard' | 'habits' | 'finance' | 'notes'
   const [searchOpen, setSearchOpen] = useState(false)
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false)
   const [focusEntryId, setFocusEntryId] = useState(null)

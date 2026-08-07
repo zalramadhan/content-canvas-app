@@ -35,11 +35,10 @@ const priorityInfo = (id) => PRIORITIES.find(p => p.id === id) || PRIORITIES[1]
 
 const fmtDate = (key) => {
   if (!key) return ''
-  try {
-    return format(parseISO(key), 'd MMM')
-  } catch {
-    return key
-  }
+  // Kunci tanggal murni ('yyyy-MM-dd') di-parse sebagai UTC oleh parseISO;
+  // tambahkan T00:00:00 agar selalu dibaca waktu lokal (anti-geser tanggal).
+  const date = key.length === 10 ? parseISO(key + 'T00:00:00') : parseISO(key)
+  return format(date, 'd MMM')
 }
 
 const localDateKey = () => {
@@ -172,12 +171,12 @@ export default function NotesTracker({
                 </div>
                 <div className="min-w-0">
                   <p className="text-base sm:text-lg font-bold text-text leading-tight truncate">
-                    {doneCount} dari {todos.length} tugas selesai
+                    {todos.length === 0 ? 'Belum ada tugas' : `${doneCount} dari ${todos.length} tugas selesai`}
                   </p>
                   <p className={`text-[11px] mt-0.5 ${overdueCount > 0 ? 'text-red-500 font-medium' : 'text-text-muted'}`}>
                     {overdueCount > 0
                       ? `⚠ ${overdueCount} tugas terlambat dari jadwal`
-                      : todos.length > 0 ? 'Semua tugas sesuai jadwal' : 'Belum ada tugas'}
+                      : todos.length > 0 ? 'Semua tugas sesuai jadwal' : 'Catat tugas pertamamu untuk mulai'}
                   </p>
                 </div>
               </div>
