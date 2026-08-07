@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { format, subMonths, addMonths } from 'date-fns'
 import {
   Wallet, Plus, Trash2, Pencil, X, Check, TrendingUp, TrendingDown,
@@ -70,7 +70,7 @@ export default function FinanceTracker({
   const monthTx = useMemo(() => {
     return transactions
       .filter(t => (t.date || '').startsWith(mPrefix))
-      .sort((a, b) => (b.date + (b.createdAt || '')) < (a.date + (a.createdAt || '')) ? -1 : 1)
+      .sort((a, b) => (b.date + (b.createdAt || '')).localeCompare(a.date + (a.createdAt || '')))
   }, [transactions, mPrefix])
 
   const walletById = (id) => wallets.find(w => w.id === id)
@@ -402,6 +402,14 @@ function TransactionsTab({ monthTx, wallets, walletById, onAdd, onDelete, confir
 
   const cats = useMemo(() => ['all', ...new Set(monthTx.map(t => t.category))], [monthTx])
 
+  // Reset filter jika nilainya tidak lagi tersedia (pindah bulan / dompet dihapus)
+  useEffect(() => {
+    if (catFilter !== 'all' && !cats.includes(catFilter)) setCatFilter('all')
+  }, [cats, catFilter])
+  useEffect(() => {
+    if (walletFilter !== 'all' && !wallets.some(w => w.id === walletFilter)) setWalletFilter('all')
+  }, [wallets, walletFilter])
+
   const filtered = monthTx.filter(t =>
     (catFilter === 'all' || t.category === catFilter) &&
     (walletFilter === 'all' || t.walletId === walletFilter)
@@ -468,7 +476,7 @@ function TransactionsTab({ monthTx, wallets, walletById, onAdd, onDelete, confir
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-text truncate">{t.note || t.category}</p>
                 <p className="text-[10px] text-text-muted">
-                  {catEmoji(t.category)} {t.category} · {w ? `${w.emoji} ${w.name}` : 'Dompet terhapus'} · {t.date}
+                  {catEmoji(t.category)} {t.category} · {w ? `${w.emoji} ${w.name}` : (t.walletId ? 'Dompet terhapus' : 'Tanpa dompet')} · {t.date}
                 </p>
               </div>
               <span className={`text-xs font-bold shrink-0 ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
@@ -851,7 +859,7 @@ function WalletModal({ initial, onSave, onClose }) {
   const [name, setName] = useState(initial?.name || '')
   const [emoji, setEmoji] = useState(initial?.emoji || '💵')
   const [color, setColor] = useState(initial?.color || '#f97316')
-  const [balance, setBalance] = useState(initial?.initialBalance ? String(initial.initialBalance) : '')
+  const [balance, setBalance] = useState(initial?.initialBalance != null ? String(initial.initialBalance) : '')
 
   const submit = (e) => {
     e.preventDefault()
