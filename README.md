@@ -85,6 +85,7 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - Data **otomatis tersinkron realtime** antar perangkat (perubahan langsung muncul, tanpa refresh)
 - **Merge cerdas saat pertama kali masuk**: data lama di perangkat tidak hilang — digabung dengan data cloud berdasarkan ID konten & waktu edit
 - Tetap bisa **offline** (data disimpan juga di localStorage perangkat)
+- **Keamanan login**: password minimal **8 karakter** (dengan indikator kekuatan saat daftar) + **rate-limit** — setelah 5 percobaan gagal dalam 10 menit, login dikunci sementara 60 detik dengan hitung mundur
 
 ### 🌗 Lainnya
 - **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard/**Habits**), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
@@ -261,6 +262,7 @@ Login bekerja sama persis seperti di lokal:
 | Gagal daftar / harus konfirmasi email | Matikan *Confirm email* di Supabase → **Authentication → Providers → Email** |
 | Email konfirmasi mengarah ke `localhost:3000` | Set **Site URL** & **Redirect URLs** di Supabase → **Authentication → URL Configuration** (lihat bagian Deployment) |
 | Login gagal padahal akun sudah didaftar di perangkat lain | Akun kemungkinan **belum dikonfirmasi** (lihat baris di atas), atau cek email/password sudah benar |
+| Login terkunci "Terlalu banyak percobaan" | Ini **rate-limit**: tunggu hitung mundur 60 detik selesai (otomatis), atau periksa email/password dulu. Setelah login sukses, penghitung direset |
 | Data di perangkat ini hilang? | Tenang — data juga tersimpan di localStorage perangkat. Saat login, data lokal otomatis digabung ke cloud |
 | Status **"Offline"** di menu Habits | Jalankan bagian **HABIT TRACKER** dari `supabase/schema.sql` (tabel `habits`) di SQL Editor, lalu klik chip **Offline** untuk mencoba lagi |
 | Build gagal di GitHub Actions | Pastikan kedua repository secrets sudah diisi dengan benar |

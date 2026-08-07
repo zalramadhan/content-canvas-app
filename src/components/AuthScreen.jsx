@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase, supabaseConfigError } from '../lib/supabase'
 import {
-  PenSquare, Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle, ArrowRight, ShieldCheck, Cloud
+  PenSquare, Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle, ArrowRight, ShieldCheck, Cloud, Clock
 } from 'lucide-react'
 
 // Where to send users after email confirm / password reset.
@@ -29,6 +29,103 @@ function friendlyAuthError(message) {
   return message
 }
 
+// ── Proteksi login: password minimal 8 karakter + rate-limit percobaan gagal ──
+const MIN_PASSWORD_LENGTH = 8
+const MAX_LOGIN_ATTEMPTS = 5
+const ATTEMPT_WINDOW_MS = 10 * 60 * 1000 // jendela 10 menit
+const LOCK_DURATION_MS = 60 * 1000       // dikunci 1 menit
+
+/** Pesan error validasi password, atau null jika valid. */
+function passwordError(password) {
+  if (!password) return 'Password wajib diisi.'
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `Password minimal ${MIN_PASSWORD_LENGTH} karakter.`
+  }
+  return null
+}
+
+/** Skor kekuatan password 0–4 berdasarkan panjang & variasi karakter. */
+function passwordStrength(password) {
+  if (!password) return 0
+  let score = 0
+  if (password.length >= 8) score++
+  if (password.length >= 12) score++
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++
+  if (/\d/.test(password) && /[^A-Za-z0-9]/.test(password)) score++
+  return Math.min(4, score)
+}
+
+// ── Rate-limit login (disimpan per email di localStorage, bertahan saat reload) ──
+const attemptsKey = (email) => `contentcanvas_login_${String(email || '').trim().toLowerCase()}`
+
+function readAttempts(email) {
+  try {
+    const raw = localStorage.getItem(attemptsKey(email))
+    if (!raw) return { count: 0, firstAttemptAt: 0, lockedUntil: 0 }
+    const p = JSON.parse(raw)
+    return {
+      count: Number(p.count) || 0,
+      firstAttemptAt: Number(p.firstAttemptAt) || 0,
+      lockedUntil: Number(p.lockedUntil) || 0,
+    }
+  } catch {
+    return { count: 0, firstAttemptAt: 0, lockedUntil: 0 }
+  }
+}
+
+function saveAttempts(email, state) {
+  try {
+    localStorage.setItem(attemptsKey(email), JSON.stringify(state))
+  } catch {
+    /* penyimpanan penuh / private mode — abaikan */
+  }
+}
+
+function clearAttempts(email) {
+  try {
+    localStorage.removeItem(attemptsKey(email))
+  } catch {
+    /* abaikan */
+  }
+}
+
+/** Sisa detik kunci login untuk email ini (0 = tidak terkunci). */
+function lockedRemainingFor(emailValue) {
+  if (!emailValue) return 0
+  const s = readAttempts(emailValue)
+  if (!s.lockedUntil) return 0
+  return Math.max(0, Math.ceil((s.lockedUntil - Date.now()) / 1000))
+}
+
+/**
+ * Catat satu percobaan login gagal. Setelah MAX_LOGIN_ATTEMPTS dalam
+ * jendela 10 menit, email dikunci selama LOCK_DURATION_MS.
+ * Mengembalikan { locked, remaining } untuk pesan ke pengguna.
+ */
+function recordFailedAttempt(emailValue) {
+  const now = Date.now()
+  let s = readAttempts(emailValue)
+
+  // Mulai jendela baru jika percobaan pertama sudah lama / kunci sudah lewat
+  if (now - s.firstAttemptAt > ATTEMPT_WINDOW_MS) {
+    s = { count: 0, firstAttemptAt: now, lockedUntil: 0 }
+  } else if (s.count === 0) {
+    s.firstAttemptAt = now
+  }
+
+  s.count += 1
+  if (s.count >= MAX_LOGIN_ATTEMPTS) {
+    s.lockedUntil = now + LOCK_DURATION_MS
+    s.count = 0
+    s.firstAttemptAt = now
+    saveAttempts(emailValue, s)
+    return { locked: true, remaining: Math.ceil(LOCK_DURATION_MS / 1000) }
+  }
+
+  saveAttempts(emailValue, s)
+  return { locked: false, remaining: MAX_LOGIN_ATTEMPTS - s.count }
+}
+
 export default function AuthScreen() {
   const [mode, setMode] = useState('login') // 'login' | 'register'
   const [email, setEmail] = useState('')
@@ -36,19 +133,47 @@ export default function AuthScreen() {
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
+  const [lockRemaining, setLockRemaining] = useState(0)
+
+  // Hitung mundur kunci login setiap detik
+  useEffect(() => {
+    if (lockRemaining <= 0) return
+    const iv = setInterval(() => setLockRemaining(s => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(iv)
+  }, [lockRemaining])
 
   const switchMode = () => {
     setMode(m => (m === 'login' ? 'register' : 'login'))
     setError('')
     setInfo('')
+    setLockRemaining(0)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!email.trim() || !password) {
+    const emailValue = email.trim().toLowerCase()
+    if (!emailValue || !password) {
       setError('Isi email dan password terlebih dahulu.')
       return
     }
+
+    // Validasi password: minimal 8 karakter (login & daftar)
+    const pwdErr = passwordError(password)
+    if (pwdErr) {
+      setError(pwdErr)
+      return
+    }
+
+    // Rate-limit: jangan izinkan percobaan saat email sedang dikunci
+    if (mode === 'login') {
+      const locked = lockedRemainingFor(emailValue)
+      if (locked > 0) {
+        setError('')
+        setLockRemaining(locked)
+        return
+      }
+    }
+
     setLoading(true)
     setError('')
     setInfo('')
@@ -56,13 +181,25 @@ export default function AuthScreen() {
     try {
       if (mode === 'login') {
         const { error: err } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: emailValue,
           password,
         })
-        if (err) setError(friendlyAuthError(err.message))
+        if (err) {
+          const res = recordFailedAttempt(emailValue)
+          if (res.locked) {
+            setError('')
+            setLockRemaining(res.remaining)
+          } else {
+            setError(`${friendlyAuthError(err.message)} (Sisa percobaan: ${res.remaining})`)
+          }
+        } else {
+          // Login sukses → reset penghitung untuk email ini
+          clearAttempts(emailValue)
+          setLockRemaining(0)
+        }
       } else {
         const { data, error: err } = await supabase.auth.signUp({
-          email: email.trim(),
+          email: emailValue,
           password,
           options: { emailRedirectTo: redirectBase() },
         })
@@ -159,7 +296,11 @@ export default function AuthScreen() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    // Sinkronkan status kunci dengan email yang sedang diketik
+                    if (mode === 'login') setLockRemaining(lockedRemainingFor(e.target.value))
+                  }}
                   placeholder="kamu@contoh.com"
                   autoComplete="email"
                   className="flex-1 bg-transparent border-none outline-none text-sm text-text placeholder:text-text-muted"
@@ -184,6 +325,9 @@ export default function AuthScreen() {
                   className="flex-1 bg-transparent border-none outline-none text-sm text-text placeholder:text-text-muted"
                 />
               </div>
+              {mode === 'register' && password && (
+                <PasswordStrength password={password} />
+              )}
               {mode === 'login' && (
                 <button
                   type="button"
@@ -195,6 +339,18 @@ export default function AuthScreen() {
                 </button>
               )}
             </div>
+
+            {/* Lock notice (rate-limit) */}
+            {lockRemaining > 0 && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20
+                              border border-amber-100 dark:border-amber-900/40">
+                <Clock className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                  Terlalu banyak percobaan gagal. Login dikunci sementara — coba lagi dalam{' '}
+                  <span className="font-bold">{lockRemaining}</span> detik.
+                </p>
+              </div>
+            )}
 
             {/* Error / Info */}
             {error && (
@@ -215,7 +371,7 @@ export default function AuthScreen() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || lockRemaining > 0}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl
                          bg-orange-500 hover:bg-orange-600 disabled:opacity-60
                          text-white text-sm font-semibold
@@ -223,12 +379,14 @@ export default function AuthScreen() {
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
+              ) : lockRemaining > 0 ? (
+                <Clock className="w-4 h-4" />
               ) : mode === 'login' ? (
                 <LogIn className="w-4 h-4" />
               ) : (
                 <UserPlus className="w-4 h-4" />
               )}
-              {mode === 'login' ? 'Masuk' : 'Daftar'}
+              {lockRemaining > 0 ? `Tunggu ${lockRemaining}s` : mode === 'login' ? 'Masuk' : 'Daftar'}
             </button>
           </form>
 
@@ -251,6 +409,43 @@ export default function AuthScreen() {
           Data tersimpan aman di cloud &amp; dicadangkan otomatis di perangkat kamu.
         </p>
       </div>
+    </div>
+  )
+}
+
+/* ── Indikator kekuatan password (tampil live saat mendaftar) ── */
+function PasswordStrength({ password }) {
+  const strength = passwordStrength(password)
+  const ok = password.length >= MIN_PASSWORD_LENGTH
+  const meta = [
+    { label: '', color: '#e9e9e9' },
+    { label: 'Lemah', color: '#ef4444' },
+    { label: 'Cukup', color: '#f59e0b' },
+    { label: 'Bagus', color: '#84cc16' },
+    { label: 'Kuat', color: '#10b981' },
+  ][strength]
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-1 rounded-full bg-surface-muted overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-300"
+            style={{ width: `${(strength / 4) * 100}%`, backgroundColor: meta.color }}
+          />
+        </div>
+        {strength > 0 && (
+          <span className="text-[10px] text-text-muted font-medium w-12 text-right shrink-0">
+            {meta.label}
+          </span>
+        )}
+      </div>
+      <p className={`text-[11px] flex items-center gap-1 ${ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-muted'}`}>
+        {ok
+          ? <ShieldCheck className="w-3 h-3 shrink-0" />
+          : <AlertCircle className="w-3 h-3 shrink-0" />}
+        Minimal {MIN_PASSWORD_LENGTH} karakter
+      </p>
     </div>
   )
 }
