@@ -157,19 +157,29 @@ export default function AuthScreen() {
       return
     }
 
-    // Validasi password: minimal 8 karakter (login & daftar)
-    const pwdErr = passwordError(password)
-    if (pwdErr) {
-      setError(pwdErr)
-      return
-    }
-
     // Rate-limit: jangan izinkan percobaan saat email sedang dikunci
+    // (dicek lebih dulu supaya akun terkunci selalu tampil hitung mundur)
     if (mode === 'login') {
       const locked = lockedRemainingFor(emailValue)
       if (locked > 0) {
         setError('')
         setLockRemaining(locked)
+        return
+      }
+    }
+
+    // Validasi password: minimal 8 karakter
+    if (mode === 'login') {
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        setError(
+          `Password minimal ${MIN_PASSWORD_LENGTH} karakter. Jika password lama kamu lebih pendek, klik "Lupa password?" untuk menggantinya.`
+        )
+        return
+      }
+    } else {
+      const pwdErr = passwordError(password)
+      if (pwdErr) {
+        setError(pwdErr)
         return
       }
     }
