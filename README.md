@@ -93,7 +93,7 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - **💸 Pencatatan transaksi** — pemasukan & pengeluaran dengan jumlah, kategori (preset), dompet, tanggal, dan catatan; bisa **diedit** (klik ikon pensil)
 - **🔄 Transfer antar dompet** — pindahkan uang antar dompet (tombol Transfer); tidak dihitung sebagai pemasukan/pengeluaran, tapi saldo kedua dompet ikut berubah
 - **🎯 Budget bulanan** — batas pengeluaran per kategori per bulan, progress bar + peringatan merah jika melebihi
-- **📊 Ringkasan & grafik** — total pemasukan/pengeluaran/saldo bulan ini, grafik pengeluaran per kategori (bar)
+- **📊 Ringkasan & grafik** — total pemasukan/pengeluaran/saldo bulan ini, grafik pengeluaran per kategori (bar), dan **tren pemasukan vs pengeluaran 6 bulan**
 - **🗂 Riwayat transaksi** — daftar transaksi per bulan, bisa difilter kategori/dompet, hapus dengan konfirmasi
 
 ### 👤 Pengaturan Profil

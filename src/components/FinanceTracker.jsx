@@ -117,6 +117,23 @@ export default function FinanceTracker({
   const budgetSpent = (category) =>
     monthTx.filter(t => t.type === 'expense' && t.category === category).reduce((s, t) => s + t.amount, 0)
 
+  // Tren 6 bulan: pemasukan vs pengeluaran per bulan (berakhir di bulan yang dilihat)
+  const trend = useMemo(() => {
+    const months = []
+    for (let i = 5; i >= 0; i--) {
+      const m = subMonths(month, i)
+      months.push({ key: monthPrefix(m), label: format(m, 'MMM'), income: 0, expense: 0 })
+    }
+    for (const t of transactions) {
+      if (t.type === 'transfer') continue
+      const bucket = months.find(b => b.key === (t.date || '').slice(0, 7))
+      if (!bucket) continue
+      if (t.type === 'income') bucket.income += t.amount
+      else bucket.expense += t.amount
+    }
+    return months
+  }, [transactions, month])
+
   const syncChip = syncState.status === 'syncing'
     ? { icon: <Loader2 className="w-3 h-3 animate-spin" />, label: 'Menyinkronkan…', cls: 'text-text-muted', retry: false }
     : syncState.status === 'synced'
@@ -233,6 +250,7 @@ export default function FinanceTracker({
           monthTx={monthTx}
           monthBudgets={monthBudgets}
           budgetSpent={budgetSpent}
+          trend={trend}
           walletById={walletById}
           onAdd={() => setTxModal({ type: 'expense' })}
         />
@@ -330,7 +348,7 @@ export default function FinanceTracker({
 }
 
 /* ═══════════════════ RINGKASAN ═══════════════════ */
-function SummaryTab({ month, monthIncome, monthExpense, net, totalWallet, expenseByCat, monthTx, monthBudgets, budgetSpent, walletById, onAdd }) {
+function SummaryTab({ month, monthIncome, monthExpense, net, totalWallet, expenseByCat, monthTx, monthBudgets, budgetSpent, trend, walletById, onAdd }) {
   const stats = [
     { label: 'Pemasukan', value: fmtIDR(monthIncome), icon: TrendingUp, cls: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { label: 'Pengeluaran', value: fmtIDR(monthExpense), icon: TrendingDown, cls: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
@@ -354,6 +372,28 @@ function SummaryTab({ month, monthIncome, monthExpense, net, totalWallet, expens
             <p className="text-[11px] text-text-muted mt-1">{label} · {format(month, 'MMM')}</p>
           </div>
         ))}
+      </div>
+
+      {/* Tren 6 bulan */}
+      <div className="bg-surface rounded-2xl border border-border/60 p-4 sm:p-5 card-shadow">
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
+          <p className="text-xs font-semibold text-text">Tren 6 bulan</p>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-[10px] text-text-muted">
+              <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" /> Pemasukan
+            </span>
+            <span className="flex items-center gap-1.5 text-[10px] text-text-muted">
+              <span className="w-2.5 h-2.5 rounded-sm bg-red-400 inline-block" /> Pengeluaran
+            </span>
+          </div>
+        </div>
+        {trend.reduce((s, m) => s + m.income + m.expense, 0) === 0 ? (
+          <p className="text-xs text-text-muted py-8 text-center">
+            Belum ada data untuk tren. Catat transaksi untuk melihat grafik 6 bulan.
+          </p>
+        ) : (
+          <TrendChart trend={trend} />
+        )}
       </div>
 
       {/* Budget bulanan */}
@@ -454,6 +494,33 @@ function SummaryTab({ month, monthIncome, monthExpense, net, totalWallet, expens
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ═══════════════════ TREN 6 BULAN (bar chart) ═══════════════════ */
+function TrendChart({ trend }) {
+  const maxVal = Math.max(1, ...trend.flatMap(m => [m.income, m.expense]))
+
+  return (
+    <div className="flex items-end gap-2 sm:gap-3" style={{ height: 160 }}>
+      {trend.map(m => (
+        <div key={m.key} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5 min-w-0">
+          <div className="flex items-end justify-center gap-1 w-full flex-1">
+            <div
+              className="w-3 sm:w-4 rounded-t-md bg-emerald-500/80 hover:bg-emerald-500 transition-colors"
+              style={{ height: `${Math.round((m.income / maxVal) * 100)}%` }}
+              title={`${m.label}: Pemasukan ${fmtIDR(m.income)}`}
+            />
+            <div
+              className="w-3 sm:w-4 rounded-t-md bg-red-400/80 hover:bg-red-400 transition-colors"
+              style={{ height: `${Math.round((m.expense / maxVal) * 100)}%` }}
+              title={`${m.label}: Pengeluaran ${fmtIDR(m.expense)}`}
+            />
+          </div>
+          <span className="text-[10px] text-text-muted truncate">{m.label}</span>
+        </div>
+      ))}
     </div>
   )
 }
