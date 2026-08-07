@@ -3,7 +3,7 @@ import { Download, FileText, FileSpreadsheet, ChevronDown, Loader2, X } from 'lu
 import { exportToCSV, exportToPDF } from '../utils/exportData'
 import { STATUSES } from '../utils/status'
 
-export default function ExportDropdown({ data, currentYear, currentMonth, embedded = false, variant = 'default' }) {
+export default function ExportDropdown({ data, currentYear, currentMonth, variant = 'default' }) {
   const [open, setOpen] = useState(false)
   const [exporting, setExporting] = useState(null) // 'csv-month' | 'csv-all' | 'pdf-month' | 'pdf-all'
   const [statusFilter, setStatusFilter] = useState(null) // null = all statuses
@@ -11,7 +11,7 @@ export default function ExportDropdown({ data, currentYear, currentMonth, embedd
 
   // Close on click outside
   useEffect(() => {
-    if (!open || embedded) return
+    if (!open) return
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setOpen(false)
@@ -180,14 +180,6 @@ export default function ExportDropdown({ data, currentYear, currentMonth, embedd
       </div>
     </>
   )
-
-  if (embedded) {
-    return (
-      <div className="rounded-xl border border-border/60 overflow-hidden">
-        {content}
-      </div>
-    )
-  }
 
   return (
     <div className="relative" ref={dropdownRef}>
