@@ -9,7 +9,7 @@ import {
   CalendarDays, Video, PenSquare,
   Menu, LayoutDashboard, Sun, Moon, X,
   Loader2, LogOut, Cloud, CloudCheck, CloudOff,
-  Search, Sparkles, Undo2, Redo2, LayoutGrid, CheckCircle2, User,
+  Search, Sparkles, Undo2, Redo2, LayoutGrid, CheckCircle2, User, Wallet,
 } from 'lucide-react'
 import Calendar from './components/Calendar'
 import DaySidebar from './components/DaySidebar'
@@ -23,10 +23,12 @@ import AISettingsModal from './components/AISettingsModal'
 import TagFilterBar from './components/TagFilterBar'
 import TagManagerModal from './components/TagManagerModal'
 import HabitTracker from './components/HabitTracker'
+import FinanceTracker from './components/FinanceTracker'
 import ProfileSettings from './components/ProfileSettings'
 import { getAllTags } from './utils/tags'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useHabits } from './hooks/useHabits'
+import { useFinance } from './hooks/useFinance'
 import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
 import { notifyDueToday } from './utils/notifications'
@@ -84,6 +86,21 @@ function App() {
     deleteHabit,
     toggleCheckin,
   } = useHabits({ userId })
+
+  const {
+    wallets,
+    transactions,
+    budgets,
+    syncState: financeSyncState,
+    retrySync: retryFinanceSync,
+    addWallet,
+    updateWallet,
+    deleteWallet,
+    addTransaction,
+    deleteTransaction,
+    addBudget,
+    deleteBudget,
+  } = useFinance({ userId })
 
   const [selectedDate, setSelectedDate] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -260,6 +277,7 @@ function App() {
     { id: 'kanban', label: 'Kanban', icon: LayoutGrid },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'habits', label: 'Habits', icon: CheckCircle2 },
+    { id: 'finance', label: 'Finance', icon: Wallet },
   ]
 
   return (
@@ -395,7 +413,9 @@ function App() {
                     ? 'Dashboard & Insights'
                     : activeView === 'habits'
                       ? 'Habit Tracker'
-                      : 'Content Calendar'}
+                      : activeView === 'finance'
+                        ? 'Financial Tracker'
+                        : 'Content Calendar'}
               </h2>
               <p className="text-xs sm:text-sm text-text-muted mt-1.5 max-w-lg leading-relaxed">
                 {activeView === 'kanban'
@@ -404,10 +424,12 @@ function App() {
                     ? 'Statistik konten, produktivitas, dan jadwal mendatang.'
                     : activeView === 'habits'
                       ? 'Bangun kebiasaan baik hari demi hari — centang, jaga streak, pantau progress.'
-                      : selectedDate
-                        ? 'Manage your content ideas for this date.'
-                        : 'Plan your social media content day by day.'
-                      }
+                      : activeView === 'finance'
+                        ? 'Kelola pemasukan, pengeluaran, budget, dan dompetmu.'
+                        : selectedDate
+                          ? 'Manage your content ideas for this date.'
+                          : 'Plan your social media content day by day.'
+                        }
               </p>
             </div>
           </div>
@@ -532,6 +554,23 @@ function App() {
             onToggleCheckin={toggleCheckin}
           />
         )}
+
+        {activeView === 'finance' && (
+          <FinanceTracker
+            wallets={wallets}
+            transactions={transactions}
+            budgets={budgets}
+            syncState={financeSyncState}
+            retrySync={retryFinanceSync}
+            onAddWallet={addWallet}
+            onUpdateWallet={updateWallet}
+            onDeleteWallet={deleteWallet}
+            onAddTransaction={addTransaction}
+            onDeleteTransaction={deleteTransaction}
+            onAddBudget={addBudget}
+            onDeleteBudget={deleteBudget}
+          />
+        )}
       </main>
 
       {/* Navigation Drawer (menu) */}
@@ -652,7 +691,7 @@ function App() {
                 Keluar
               </button>
               <p className="text-[10px] text-text-muted text-center pt-1">
-                ContentCanvas v1.3 — Habits, Pipeline, AI & Dashboard
+                ContentCanvas v1.4 — Finance, Habits, Pipeline & AI
               </p>
             </div>
           </div>

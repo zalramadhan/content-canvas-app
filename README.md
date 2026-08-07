@@ -87,13 +87,21 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - Tetap bisa **offline** (data disimpan juga di localStorage perangkat)
 - **Keamanan login**: password minimal **8 karakter** (dengan indikator kekuatan saat daftar) + **rate-limit** — setelah 5 percobaan gagal dalam 10 menit, login dikunci sementara 60 detik dengan hitung mundur
 
+### 💰 Financial Tracker
+- Menu baru **Finance** di navigasi (☰) untuk mengelola keuangan pribadi (mata uang Rupiah)
+- **👛 Dompet** — buat beberapa dompet (Tunai, Bank, E-Wallet) dengan ikon & warna; saldo dihitung otomatis dari transaksi
+- **💸 Pencatatan transaksi** — pemasukan & pengeluaran dengan jumlah, kategori (preset), dompet, tanggal, dan catatan
+- **🎯 Budget bulanan** — batas pengeluaran per kategori per bulan, progress bar + peringatan merah jika melebihi
+- **📊 Ringkasan & grafik** — total pemasukan/pengeluaran/saldo bulan ini, grafik pengeluaran per kategori (bar)
+- **🗂 Riwayat transaksi** — daftar transaksi per bulan, bisa difilter kategori/dompet, hapus dengan konfirmasi
+
 ### 👤 Pengaturan Profil
 - **Nama tampilan**, **avatar emoji + warna**, dan **preferensi bahasa** — dibuka dari menu hamburger (☰) → kartu profil di bagian bawah
 - Preview avatar live sebelum disimpan, disimpan ke **Supabase Auth (user_metadata)** → otomatis sinkron ke semua perangkat **tanpa perlu tabel SQL baru**
 - Avatar & nama tampil di menu hamburger dan mengikuti akun di mana pun kamu login
 
 ### 🌗 Lainnya
-- **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard/**Habits**), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
+- **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard/**Habits**/**Finance**), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
 - Notifikasi, Undo/Redo, dan AI Assistant selalu terlihat di navbar
 - Dark mode (otomatis ikut sistem + bisa diubah manual dari menu hamburger)
 - PWA — bisa **di-install** ke layar beranda HP seperti aplikasi native
@@ -141,9 +149,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
 
 Buka **Supabase Dashboard → SQL Editor → New query**, paste isi file [`supabase/schema.sql`](supabase/schema.sql), lalu klik **Run**.
 
-Script tersebut membuat tabel `entries` (konten kalender) **dan** `habits` (habit tracker), aturan keamanan baris (RLS — tiap user hanya bisa akses datanya sendiri), serta mengaktifkan realtime.
+Script tersebut membuat tabel `entries` (konten kalender), `habits` (habit tracker), **dan** `finance` (financial tracker), aturan keamanan baris (RLS — tiap user hanya bisa akses datanya sendiri), serta mengaktifkan realtime.
 
-> 💡 **Sudah pernah menjalankan schema.sql sebelumnya?** Tidak perlu run ulang dari nol — cukup buka bagian **HABIT TRACKER** di file yang sama (tabel `habits` + policies-nya) dan Run bagian itu saja.
+> 💡 **Sudah pernah menjalankan schema.sql sebelumnya?** Tidak perlu run ulang dari nol — cukup buka bagian yang belum pernah dijalankan (**HABIT TRACKER** untuk tabel `habits`, atau **FINANCIAL TRACKER** untuk tabel `finance`) di file yang sama dan Run bagian itu saja.
 
 > 💡 **Tips:** Disarankan mematikan *Confirm email* di **Authentication → Providers → Email**, agar pendaftaran langsung masuk tanpa perlu verifikasi email.
 
@@ -270,6 +278,7 @@ Login bekerja sama persis seperti di lokal:
 | Login terkunci "Terlalu banyak percobaan" | Ini **rate-limit**: tunggu hitung mundur 60 detik selesai (otomatis), atau periksa email/password dulu. Setelah login sukses, penghitung direset |
 | Data di perangkat ini hilang? | Tenang — data juga tersimpan di localStorage perangkat. Saat login, data lokal otomatis digabung ke cloud |
 | Status **"Offline"** di menu Habits | Jalankan bagian **HABIT TRACKER** dari `supabase/schema.sql` (tabel `habits`) di SQL Editor, lalu klik chip **Offline** untuk mencoba lagi |
+| Status **"Offline"** di menu Finance | Jalankan bagian **FINANCIAL TRACKER** dari `supabase/schema.sql` (tabel `finance`) di SQL Editor, lalu klik chip **Offline** untuk mencoba lagi |
 | Build gagal di GitHub Actions | Pastikan kedua repository secrets sudah diisi dengan benar |
 
 ---

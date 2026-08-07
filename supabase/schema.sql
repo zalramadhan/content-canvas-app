@@ -91,3 +91,50 @@ begin
     alter publication supabase_realtime add table public.habits;
   end if;
 end $$;
+
+-- ═══════════════════════════════════════════════════════════════
+--  FINANCIAL TRACKER
+--  (jalankan bagian ini SEKALI juga — aman di-run ulang)
+--  Tabel finance: SATU baris per user; kolom `data` (JSON) berisi
+--  daftar dompet, transaksi, dan budget.
+-- ═══════════════════════════════════════════════════════════════
+
+-- ── 7) Tabel finance ──
+create table if not exists public.finance (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid(),
+  data jsonb not null default '{"wallets":[],"transactions":[],"budgets":[]}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id)
+);
+
+-- ── 8) Keamanan baris (RLS): user hanya bisa akses datanya sendiri ──
+alter table public.finance enable row level security;
+
+drop policy if exists "finance_select_own" on public.finance;
+create policy "finance_select_own" on public.finance
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "finance_insert_own" on public.finance;
+create policy "finance_insert_own" on public.finance
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "finance_update_own" on public.finance;
+create policy "finance_update_own" on public.finance
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "finance_delete_own" on public.finance;
+create policy "finance_delete_own" on public.finance
+  for delete using (auth.uid() = user_id);
+
+-- ── 9) Aktifkan Realtime untuk tabel finance ──
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'finance'
+  ) then
+    alter publication supabase_realtime add table public.finance;
+  end if;
+end $$;

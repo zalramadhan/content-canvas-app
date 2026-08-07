@@ -222,3 +222,94 @@ export function subscribeToHabits(userId, onChange) {
     supabase.removeChannel(channel)
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  FINANCIAL TRACKER SYNC
+//  Data model: table public.finance, SATU baris per user:
+//    row: { id, user_id, data: jsonb, updated_at }
+//  data shape: { wallets: [], transactions: [], budgets: [] }
+// ═══════════════════════════════════════════════════════════════
+
+/** Fetch the user's finance data (single row) → { wallets, transactions, budgets } */
+export async function fetchFinance(userId) {
+  const { data, error } = await supabase
+    .from('finance')
+    .select('data')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data && data.data) || { wallets: [], transactions: [], budgets: [] }
+}
+
+/** Upsert the user's whole finance payload. */
+export async function upsertFinance(userId, financeData) {
+  const { error } = await supabase
+    .from('finance')
+    .upsert(
+      {
+        user_id: userId,
+        data: financeData,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+
+  if (error) throw error
+}
+
+/**
+ * Merge local + cloud finance data (last-writer-wins per item by id).
+ * Deletions don't propagate across devices (consistent with the rest of the app).
+ */
+export function mergeFinance(localData, cloudData) {
+  const local = localData || {}
+  const cloud = cloudData || {}
+
+  const mergeList = (l, c) => {
+    const byId = new Map()
+    for (const item of c || []) byId.set(item.id, item)
+    for (const item of l || []) {
+      const existing = byId.get(item.id)
+      if (!existing) byId.set(item.id, item)
+      else if (timestampOf(item) > timestampOf(existing)) byId.set(item.id, item)
+    }
+    return Array.from(byId.values())
+  }
+
+  return {
+    wallets: mergeList(local.wallets, cloud.wallets),
+    transactions: mergeList(local.transactions, cloud.transactions),
+    budgets: mergeList(local.budgets, cloud.budgets),
+  }
+}
+
+/**
+ * Subscribe to realtime changes on this user's finance row.
+ * Returns an unsubscribe function.
+ */
+export function subscribeToFinance(userId, onChange) {
+  const channel = supabase
+    .channel(`finance-sync-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'finance',
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        // DELETE is ignored (the app never deletes the row — local is the source of truth).
+        if (payload.eventType === 'DELETE') return
+        const row = payload.new
+        if (!row) return
+        onChange(row.data || { wallets: [], transactions: [], budgets: [] })
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
