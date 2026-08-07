@@ -9,7 +9,7 @@ import {
   CalendarDays, Video, PenSquare,
   Menu, LayoutDashboard, Sun, Moon, X,
   Loader2, LogOut, Cloud, CloudCheck, CloudOff,
-  Search, Sparkles, Undo2, Redo2, LayoutGrid, CheckCircle2, User, Wallet,
+  Search, Sparkles, Undo2, Redo2, LayoutGrid, CheckCircle2, User, Wallet, StickyNote,
 } from 'lucide-react'
 import Calendar from './components/Calendar'
 import DaySidebar from './components/DaySidebar'
@@ -24,11 +24,13 @@ import TagFilterBar from './components/TagFilterBar'
 import TagManagerModal from './components/TagManagerModal'
 import HabitTracker from './components/HabitTracker'
 import FinanceTracker from './components/FinanceTracker'
+import NotesTracker from './components/NotesTracker'
 import ProfileSettings from './components/ProfileSettings'
 import { getAllTags } from './utils/tags'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useHabits } from './hooks/useHabits'
 import { useFinance } from './hooks/useFinance'
+import { useNotes } from './hooks/useNotes'
 import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
 import { notifyDueToday } from './utils/notifications'
@@ -103,6 +105,20 @@ function App() {
     addBudget,
     deleteBudget,
   } = useFinance({ userId })
+
+  const {
+    notes,
+    todos,
+    syncState: notesSyncState,
+    retrySync: retryNotesSync,
+    addNote,
+    updateNote,
+    deleteNote,
+    addTodo,
+    updateTodo,
+    deleteTodo,
+    toggleTodo,
+  } = useNotes({ userId })
 
   const [selectedDate, setSelectedDate] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -280,6 +296,7 @@ function App() {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'habits', label: 'Habits', icon: CheckCircle2 },
     { id: 'finance', label: 'Finance', icon: Wallet },
+    { id: 'notes', label: 'Notes & Todo', icon: StickyNote },
   ]
 
   return (
@@ -575,6 +592,22 @@ function App() {
             onDeleteBudget={deleteBudget}
           />
         )}
+
+        {activeView === 'notes' && (
+          <NotesTracker
+            notes={notes}
+            todos={todos}
+            syncState={notesSyncState}
+            retrySync={retryNotesSync}
+            onAddNote={addNote}
+            onUpdateNote={updateNote}
+            onDeleteNote={deleteNote}
+            onAddTodo={addTodo}
+            onUpdateTodo={updateTodo}
+            onDeleteTodo={deleteTodo}
+            onToggleTodo={toggleTodo}
+          />
+        )}
       </main>
 
       {/* Navigation Drawer (menu) */}
@@ -695,7 +728,7 @@ function App() {
                 Keluar
               </button>
               <p className="text-[10px] text-text-muted text-center pt-1">
-                ContentCanvas v1.4 — Finance, Habits, Pipeline & AI
+                ContentCanvas v1.5 — Finance, Habits, Notes & AI
               </p>
             </div>
           </div>

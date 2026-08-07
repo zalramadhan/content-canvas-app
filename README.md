@@ -96,13 +96,20 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - **📊 Ringkasan & grafik** — total pemasukan/pengeluaran/saldo bulan ini, grafik pengeluaran per kategori (bar), dan **tren pemasukan vs pengeluaran 6 bulan**
 - **🗂 Riwayat transaksi** — daftar transaksi per bulan, bisa difilter kategori/dompet, hapus dengan konfirmasi
 
+### 📝 Notes & Todo Tracker
+- Menu baru **Notes & Todo** di navigasi (☰) — gabungan **catatan** (sticky notes) dan **daftar tugas** dalam satu menu, tersinkron cloud
+- **📋 Tugas** — centang selesai, **prioritas** (Penting/Sedang/Rendah), **kategori** (Kantor/Pribadi/Belajar/Kesehatan/Lainnya), dan **tanggal jatuh tempo** dengan peringatan *Terlambat*; urut otomatis (belum selesai → deadline terdekat → prioritas tertinggi)
+- **📊 Progress bar** di header tugas — berapa persen selesai + jumlah tugas terlambat
+- **🗒 Catatan** — seperti sticky notes dengan **6 pilihan warna**, bisa **di-pin ke atas**; kartu di-pin tampil paling atas
+- Tugas & catatan bisa **diedit** (klik ikon pensil) dan **dihapus** dengan konfirmasi
+
 ### 👤 Pengaturan Profil
 - **Nama tampilan**, **avatar emoji + warna**, dan **preferensi bahasa** — dibuka dari menu hamburger (☰) → kartu profil di bagian bawah
 - Preview avatar live sebelum disimpan, disimpan ke **Supabase Auth (user_metadata)** → otomatis sinkron ke semua perangkat **tanpa perlu tabel SQL baru**
 - Avatar & nama tampil di menu hamburger dan mengikuti akun di mana pun kamu login
 
 ### 🌗 Lainnya
-- **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard/**Habits**/**Finance**), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
+- **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard/**Habits**/**Finance**/**Notes & Todo**), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
 - Notifikasi, Undo/Redo, dan AI Assistant selalu terlihat di navbar
 - Dark mode (otomatis ikut sistem + bisa diubah manual dari menu hamburger)
 - PWA — bisa **di-install** ke layar beranda HP seperti aplikasi native
@@ -150,9 +157,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
 
 Buka **Supabase Dashboard → SQL Editor → New query**, paste isi file [`supabase/schema.sql`](supabase/schema.sql), lalu klik **Run**.
 
-Script tersebut membuat tabel `entries` (konten kalender), `habits` (habit tracker), **dan** `finance` (financial tracker), aturan keamanan baris (RLS — tiap user hanya bisa akses datanya sendiri), serta mengaktifkan realtime.
+Script tersebut membuat tabel `entries` (konten kalender), `habits` (habit tracker), `finance` (financial tracker), **dan** `notes` (notes & todo tracker), aturan keamanan baris (RLS — tiap user hanya bisa akses datanya sendiri), serta mengaktifkan realtime.
 
-> 💡 **Sudah pernah menjalankan schema.sql sebelumnya?** Tidak perlu run ulang dari nol — cukup buka bagian yang belum pernah dijalankan (**HABIT TRACKER** untuk tabel `habits`, atau **FINANCIAL TRACKER** untuk tabel `finance`) di file yang sama dan Run bagian itu saja.
+> 💡 **Sudah pernah menjalankan schema.sql sebelumnya?** Tidak perlu run ulang dari nol — cukup buka bagian yang belum pernah dijalankan (**HABIT TRACKER** untuk tabel `habits`, **FINANCIAL TRACKER** untuk tabel `finance`, atau **NOTES & TODO TRACKER** untuk tabel `notes`) di file yang sama dan Run bagian itu saja.
 
 > 💡 **Tips:** Disarankan mematikan *Confirm email* di **Authentication → Providers → Email**, agar pendaftaran langsung masuk tanpa perlu verifikasi email.
 

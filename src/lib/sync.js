@@ -313,3 +313,96 @@ export function subscribeToFinance(userId, onChange) {
     supabase.removeChannel(channel)
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  NOTES & TODO TRACKER SYNC
+//  Data model: table public.notes, SATU baris per user:
+//    row: { id, user_id, data: jsonb, updated_at }
+//  data shape: {
+//    notes: [ { id, title, content, color, pinned, createdAt, updatedAt } ],
+//    todos: [ { id, title, done, priority, category, dueDate, createdAt, updatedAt } ]
+//  }
+// ═══════════════════════════════════════════════════════════════
+
+/** Fetch the user's notes+todos data (single row) → { notes, todos } */
+export async function fetchNotes(userId) {
+  const { data, error } = await supabase
+    .from('notes')
+    .select('data')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data && data.data) || { notes: [], todos: [] }
+}
+
+/** Upsert the user's whole notes+todos payload. */
+export async function upsertNotes(userId, notesData) {
+  const { error } = await supabase
+    .from('notes')
+    .upsert(
+      {
+        user_id: userId,
+        data: notesData,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+
+  if (error) throw error
+}
+
+/**
+ * Merge local + cloud notes+todos data (last-writer-wins per item by id).
+ * Deletions don't propagate across devices (consistent with the rest of the app).
+ */
+export function mergeNotes(localData, cloudData) {
+  const local = localData || {}
+  const cloud = cloudData || {}
+
+  const mergeList = (l, c) => {
+    const byId = new Map()
+    for (const item of c || []) byId.set(item.id, item)
+    for (const item of l || []) {
+      const existing = byId.get(item.id)
+      if (!existing) byId.set(item.id, item)
+      else if (timestampOf(item) > timestampOf(existing)) byId.set(item.id, item)
+    }
+    return Array.from(byId.values())
+  }
+
+  return {
+    notes: mergeList(local.notes, cloud.notes),
+    todos: mergeList(local.todos, cloud.todos),
+  }
+}
+
+/**
+ * Subscribe to realtime changes on this user's notes row.
+ * Returns an unsubscribe function.
+ */
+export function subscribeToNotes(userId, onChange) {
+  const channel = supabase
+    .channel(`notes-sync-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'notes',
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        // DELETE is ignored (the app never deletes the row — local is the source of truth).
+        if (payload.eventType === 'DELETE') return
+        const row = payload.new
+        if (!row) return
+        onChange(row.data || { notes: [], todos: [] })
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
