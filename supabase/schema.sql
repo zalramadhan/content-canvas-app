@@ -44,3 +44,50 @@ begin
     alter publication supabase_realtime add table public.entries;
   end if;
 end $$;
+
+-- ═══════════════════════════════════════════════════════════════
+--  HABIT TRACKER
+--  (jalankan bagian ini SEKALI juga — aman di-run ulang)
+--  Tabel habits: SATU baris per user; kolom `data` (JSON) berisi
+--  daftar habit + check-in hariannya.
+-- ═══════════════════════════════════════════════════════════════
+
+-- ── 4) Tabel habits ──
+create table if not exists public.habits (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid(),
+  data jsonb not null default '{"habits":[]}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id)
+);
+
+-- ── 5) Keamanan baris (RLS): user hanya bisa akses habitnya sendiri ──
+alter table public.habits enable row level security;
+
+drop policy if exists "habits_select_own" on public.habits;
+create policy "habits_select_own" on public.habits
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "habits_insert_own" on public.habits;
+create policy "habits_insert_own" on public.habits
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "habits_update_own" on public.habits;
+create policy "habits_update_own" on public.habits
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "habits_delete_own" on public.habits;
+create policy "habits_delete_own" on public.habits
+  for delete using (auth.uid() = user_id);
+
+-- ── 6) Aktifkan Realtime untuk tabel habits ──
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'habits'
+  ) then
+    alter publication supabase_realtime add table public.habits;
+  end if;
+end $$;

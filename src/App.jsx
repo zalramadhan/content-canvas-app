@@ -9,7 +9,7 @@ import {
   CalendarDays, Video, PenSquare,
   Menu, LayoutDashboard, Sun, Moon, X,
   Loader2, LogOut, Cloud, CloudCheck, CloudOff,
-  Search, Sparkles, Undo2, Redo2, LayoutGrid,
+  Search, Sparkles, Undo2, Redo2, LayoutGrid, CheckCircle2,
 } from 'lucide-react'
 import Calendar from './components/Calendar'
 import DaySidebar from './components/DaySidebar'
@@ -22,8 +22,9 @@ import NotificationsPanel from './components/NotificationsPanel'
 import AISettingsModal from './components/AISettingsModal'
 import TagFilterBar from './components/TagFilterBar'
 import TagManagerModal from './components/TagManagerModal'
-import { getAllTags } from './utils/tags'
+import HabitTracker from './components/HabitTracker'
 import { useLocalStorage } from './hooks/useLocalStorage'
+import { useHabits } from './hooks/useHabits'
 import { useTheme } from './hooks/useTheme'
 import { supabase } from './lib/supabase'
 import { notifyDueToday } from './utils/notifications'
@@ -71,6 +72,16 @@ function App() {
   } = useLocalStorage({ userId })
 
   const { isDark, toggleTheme } = useTheme()
+
+  const {
+    habits,
+    syncState: habitSyncState,
+    retrySync: retryHabitSync,
+    addHabit,
+    updateHabit,
+    deleteHabit,
+    toggleCheckin,
+  } = useHabits({ userId })
 
   const [selectedDate, setSelectedDate] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -238,6 +249,7 @@ function App() {
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
     { id: 'kanban', label: 'Kanban', icon: LayoutGrid },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'habits', label: 'Habits', icon: CheckCircle2 },
   ]
 
   return (
@@ -371,17 +383,21 @@ function App() {
                   ? 'Production Pipeline'
                   : activeView === 'dashboard'
                     ? 'Dashboard & Insights'
-                    : 'Content Calendar'}
+                    : activeView === 'habits'
+                      ? 'Habit Tracker'
+                      : 'Content Calendar'}
               </h2>
               <p className="text-xs sm:text-sm text-text-muted mt-1.5 max-w-lg leading-relaxed">
                 {activeView === 'kanban'
                   ? 'Seret konten antar kolom untuk mengubah status produksi.'
                   : activeView === 'dashboard'
                     ? 'Statistik konten, produktivitas, dan jadwal mendatang.'
-                    : selectedDate
-                      ? 'Manage your content ideas for this date.'
-                      : 'Plan your social media content day by day.'
-                    }
+                    : activeView === 'habits'
+                      ? 'Bangun kebiasaan baik hari demi hari — centang, jaga streak, pantau progress.'
+                      : selectedDate
+                        ? 'Manage your content ideas for this date.'
+                        : 'Plan your social media content day by day.'
+                      }
               </p>
             </div>
           </div>
@@ -494,6 +510,18 @@ function App() {
             onOpenDate={openDate}
           />
         )}
+
+        {activeView === 'habits' && (
+          <HabitTracker
+            habits={habits}
+            syncState={habitSyncState}
+            retrySync={retryHabitSync}
+            onAddHabit={addHabit}
+            onUpdateHabit={updateHabit}
+            onDeleteHabit={deleteHabit}
+            onToggleCheckin={toggleCheckin}
+          />
+        )}
       </main>
 
       {/* Navigation Drawer (menu) */}
@@ -595,7 +623,7 @@ function App() {
                 Keluar
               </button>
               <p className="text-[10px] text-text-muted text-center pt-1">
-                ContentCanvas v1.2 — Pipeline, AI & Dashboard
+                ContentCanvas v1.3 — Habits, Pipeline, AI & Dashboard
               </p>
             </div>
           </div>

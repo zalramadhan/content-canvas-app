@@ -121,10 +121,104 @@ export function subscribeToEntries(userId, onChange) {
   }
 }
 
-/** True when the error is caused by the entries table not existing yet. */
+/** True when the error is caused by a required table not existing yet. */
 export function isTableMissingError(error) {
   if (!error) return false
   const code = error.code || error.status
-  if (code === '42P01') return true
-  return /entries.*does not exist|relation.*does not exist/i.test(String(error.message || ''))
+  if (code === '42P01' || code === 'PGRST205') return true
+  return /could not find the table|relation .* does not exist/i.test(String(error.message || ''))
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HABIT TRACKER SYNC
+//  Data model: table public.habits, SATU baris per user:
+//    row: { id, user_id, data: jsonb (habits[]), updated_at }
+//  data shape: { habits: [ { id, name, emoji, color, weeklyTarget,
+//                            createdAt, updatedAt, checkins: { 'yyyy-MM-dd': 1 } } ] }
+// ═══════════════════════════════════════════════════════════════
+
+/** Fetch the user's habit data (single row) → { habits: [...] } */
+export async function fetchHabits(userId) {
+  const { data, error } = await supabase
+    .from('habits')
+    .select('data')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data && data.data) || { habits: [] }
+}
+
+/** Upsert the user's whole habit payload. */
+export async function upsertHabits(userId, habitsData) {
+  const { error } = await supabase
+    .from('habits')
+    .upsert(
+      {
+        user_id: userId,
+        data: habitsData,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+
+  if (error) throw error
+}
+
+/**
+ * Merge local + cloud habit data (last-writer-wins per habit, but
+ * check-ins are unioned so nothing gets lost between devices).
+ */
+export function mergeHabits(localData, cloudData) {
+  const local = (localData && localData.habits) || []
+  const cloud = (cloudData && cloudData.habits) || []
+
+  const byId = new Map()
+  for (const h of cloud) byId.set(h.id, h)
+
+  for (const h of local) {
+    const existing = byId.get(h.id)
+    if (!existing) {
+      byId.set(h.id, h)
+    } else {
+      const newer = timestampOf(h) > timestampOf(existing) ? h : existing
+      const older = newer === h ? existing : h
+      byId.set(h.id, {
+        ...newer,
+        checkins: { ...(older.checkins || {}), ...(newer.checkins || {}) },
+      })
+    }
+  }
+
+  return { habits: Array.from(byId.values()) }
+}
+
+/**
+ * Subscribe to realtime changes on this user's habits row.
+ * Returns an unsubscribe function.
+ */
+export function subscribeToHabits(userId, onChange) {
+  const channel = supabase
+    .channel(`habits-sync-${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'habits',
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        // DELETE is ignored (the app never deletes the row — local is the source of truth).
+        if (payload.eventType === 'DELETE') return
+        const row = payload.new
+        if (!row) return
+        onChange((row.data && row.data.habits) ? row.data : { habits: [] })
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
 }

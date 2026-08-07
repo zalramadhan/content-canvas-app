@@ -72,6 +72,14 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - **Filter status** — ekspor hanya konten dengan status tertentu (misal hanya **Posted**); nama file & header laporan ikut menyebutkan filternya
 - Akses lewat **menu hamburger** (☰ di pojok kanan atas) — header kini bersih & fokus
 
+### ✅ Habit Tracker
+- Menu baru **Habits** di navigasi (☰) untuk melacak kebiasaan harian pribadi
+- **Check-in harian**: grid 7 atau 14 hari terakhir — cukup tap kotak untuk menandai selesai
+- **🔥 Streak counter** — jumlah hari beruntun per habit (otomatis, berhenti jika bolos)
+- **🎯 Target mingguan** — set target 1–7× per minggu, tampil sebagai progress bar
+- **📊 Statistik bulanan** — persentase konsistensi & jumlah hari tercapai di bulan berjalan
+- Tambah/edit/hapus habit dengan **ikon emoji & warna** pilihan, tersinkron antar perangkat
+
 ### ☁️ Sinkronisasi Cloud (Supabase)
 - Login dengan **email & password** — cukup daftar sekali, lalu masuk di perangkat lain
 - Data **otomatis tersinkron realtime** antar perangkat (perubahan langsung muncul, tanpa refresh)
@@ -79,7 +87,7 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - Tetap bisa **offline** (data disimpan juga di localStorage perangkat)
 
 ### 🌗 Lainnya
-- **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
+- **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard/**Habits**), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
 - Notifikasi, Undo/Redo, dan AI Assistant selalu terlihat di navbar
 - Dark mode (otomatis ikut sistem + bisa diubah manual dari menu hamburger)
 - PWA — bisa **di-install** ke layar beranda HP seperti aplikasi native
@@ -127,7 +135,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-public-key
 
 Buka **Supabase Dashboard → SQL Editor → New query**, paste isi file [`supabase/schema.sql`](supabase/schema.sql), lalu klik **Run**.
 
-Script tersebut membuat tabel `entries`, aturan keamanan baris (RLS — tiap user hanya bisa akses datanya sendiri), dan mengaktifkan realtime.
+Script tersebut membuat tabel `entries` (konten kalender) **dan** `habits` (habit tracker), aturan keamanan baris (RLS — tiap user hanya bisa akses datanya sendiri), serta mengaktifkan realtime.
+
+> 💡 **Sudah pernah menjalankan schema.sql sebelumnya?** Tidak perlu run ulang dari nol — cukup buka bagian **HABIT TRACKER** di file yang sama (tabel `habits` + policies-nya) dan Run bagian itu saja.
 
 > 💡 **Tips:** Disarankan mematikan *Confirm email* di **Authentication → Providers → Email**, agar pendaftaran langsung masuk tanpa perlu verifikasi email.
 
@@ -155,17 +165,20 @@ Buka `http://localhost:5173`, daftar akun, dan mulai merencanakan konten! 🎉
 ## ☁️ Cara Kerja Sinkronisasi Data
 
 ```
-┌─────────────┐         ┌──────────────────┐         ┌─────────────┐
-│  Perangkat A │◄──────►│  Supabase Cloud   │◄──────►│  Perangkat B │
-│  (HP)        │  realtime & upsert  │  (tabel entries)  │  realtime  │  (PC)        │
-└─────────────┘         └──────────────────┘         └─────────────┘
+┌─────────────┐         ┌────────────────────────┐         ┌─────────────┐
+│  Perangkat A │◄──────►│  Supabase Cloud        │◄──────►│  Perangkat B │
+│  (HP)        │ realtime │  • tabel entries       │ realtime │  (PC)        │
+│              │ & upsert  │  • tabel habits        │          │              │
+└─────────────┘         └────────────────────────┘         └─────────────┘
 ```
 
 1. **Masuk** → aplikasi menarik data dari cloud dan **menggabungkan** dengan data lokal perangkat
-2. **Edit konten** → perubahan disimpan ke perangkat (instan) lalu dikirim ke cloud
+2. **Edit konten/habit** → perubahan disimpan ke perangkat (instan) lalu dikirim ke cloud
 3. **Perangkat lain online** → menerima perubahan lewat *realtime subscription* tanpa perlu refresh
 
-**Struktur data:** satu baris per (user, tanggal) → kolom `data` (JSON) berisi daftar konten hari itu. Penggabungan konflik dilakukan per-konten berdasarkan ID + waktu edit terakhir.
+**Struktur data konten:** satu baris per (user, tanggal) → kolom `data` (JSON) berisi daftar konten hari itu. Penggabungan konflik dilakukan per-konten berdasarkan ID + waktu edit terakhir.
+
+**Struktur data habits:** satu baris per user → kolom `data` (JSON) berisi daftar habit + check-in harian. Check-in digabung (union) antar perangkat agar tidak ada yang hilang.
 
 ---
 
@@ -221,9 +234,11 @@ Login bekerja sama persis seperti di lokal:
 ├── src/
 │   ├── components/                # UI: Calendar, DaySidebar, AddVideoForm,
 │   │                              #      AuthScreen, VideoEmbed, ImagePreview, dll.
-│   ├── hooks/                     # useLocalStorage (data + sinkronisasi),
+│   ├── hooks/                     # useLocalStorage (data konten + sinkronisasi),
+│   │                              # useHabits (data habit + sinkronisasi),
 │   │                              # useTheme (dark mode)
-│   ├── lib/                       # supabase.js (client) & sync.js (sinkronisasi)
+│   ├── lib/                       # supabase.js (client) & sync.js (sinkronisasi
+│   │                              # konten + habits)
 │   ├── utils/                     # videoParser.js (deteksi platform URL),
 │   │                              # exportData.js (CSV/PDF)
 │   ├── App.jsx                    # Kerangka aplikasi & navigasi
@@ -247,6 +262,7 @@ Login bekerja sama persis seperti di lokal:
 | Email konfirmasi mengarah ke `localhost:3000` | Set **Site URL** & **Redirect URLs** di Supabase → **Authentication → URL Configuration** (lihat bagian Deployment) |
 | Login gagal padahal akun sudah didaftar di perangkat lain | Akun kemungkinan **belum dikonfirmasi** (lihat baris di atas), atau cek email/password sudah benar |
 | Data di perangkat ini hilang? | Tenang — data juga tersimpan di localStorage perangkat. Saat login, data lokal otomatis digabung ke cloud |
+| Status **"Offline"** di menu Habits | Jalankan bagian **HABIT TRACKER** dari `supabase/schema.sql` (tabel `habits`) di SQL Editor, lalu klik chip **Offline** untuk mencoba lagi |
 | Build gagal di GitHub Actions | Pastikan kedua repository secrets sudah diisi dengan benar |
 
 ---
