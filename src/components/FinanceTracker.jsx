@@ -3,7 +3,7 @@ import { format, subMonths, addMonths } from 'date-fns'
 import {
   Wallet, Plus, Trash2, Pencil, X, Check, TrendingUp, TrendingDown,
   Target, ChevronLeft, ChevronRight, Loader2, CloudCheck, CloudOff,
-  ArrowLeftRight,
+  ArrowLeftRight, AlertTriangle,
 } from 'lucide-react'
 
 // ── Konstanta ──
@@ -68,6 +68,7 @@ export default function FinanceTracker({
   const [budgetModal, setBudgetModal] = useState(false)
   const [confirmTxId, setConfirmTxId] = useState(null)
   const [confirmWalletId, setConfirmWalletId] = useState(null)
+  const [walletToDelete, setWalletToDelete] = useState(null) // null | dompet yang menunggu opsi hapus (ada transaksi terkait)
 
   const mPrefix = monthPrefix(month)
   const monthTx = useMemo(() => {
@@ -155,6 +156,22 @@ export default function FinanceTracker({
     if (tx.type === 'transfer') setTransferModal({ editing: tx })
     else setTxModal({ editing: tx })
   }
+
+  // Transaksi yang menyentuh dompet tertentu (pemasukan/pengeluaran + transfer)
+  const relatedTxFor = (w) =>
+    transactions.filter(t =>
+      t.walletId === w.id ||
+      (t.type === 'transfer' && (t.fromWalletId === w.id || t.toWalletId === w.id))
+    )
+
+  // Hapus dompet: jika ada transaksi terkait, tanyakan opsi penanganan dulu
+  const handleDeleteWallet = (w) => {
+    setConfirmWalletId(null)
+    if (relatedTxFor(w).length > 0) setWalletToDelete(w)
+    else onDeleteWallet(w.id)
+  }
+
+  const deleteRelated = walletToDelete ? relatedTxFor(walletToDelete) : []
 
   return (
     <div className="space-y-5">
@@ -289,7 +306,7 @@ export default function FinanceTracker({
           totalWallet={totalWallet}
           onAdd={() => setWalletModal({})}
           onEdit={(w) => setWalletModal(w)}
-          onDelete={onDeleteWallet}
+          onDelete={handleDeleteWallet}
           confirmWalletId={confirmWalletId}
           setConfirmWalletId={setConfirmWalletId}
         />
@@ -332,6 +349,21 @@ export default function FinanceTracker({
             if (walletModal.id) onUpdateWallet(walletModal.id, payload)
             else onAddWallet(payload)
             setWalletModal(null)
+          }}
+        />
+      )}
+
+      {/* ── Modal hapus dompet (dengan opsi penanganan transaksi) ── */}
+      {walletToDelete && (
+        <DeleteWalletModal
+          wallet={walletToDelete}
+          relatedCount={deleteRelated.length}
+          transferCount={deleteRelated.filter(t => t.type === 'transfer').length}
+          otherWallets={wallets.filter(w => w.id !== walletToDelete.id)}
+          onClose={() => setWalletToDelete(null)}
+          onConfirm={(opts) => {
+            onDeleteWallet(walletToDelete.id, opts)
+            setWalletToDelete(null)
           }}
         />
       )}
@@ -815,7 +847,7 @@ function WalletsTab({ wallets, walletBalance, totalWallet, onAdd, onEdit, onDele
                 {confirmWalletId === w.id ? (
                   <span className="flex items-center gap-1 shrink-0">
                     <button
-                      onClick={() => { onDelete(w.id); setConfirmWalletId(null) }}
+                      onClick={() => { onDelete(w); setConfirmWalletId(null) }}
                       className="px-2 py-1 rounded-lg bg-red-500 text-white text-[11px] font-semibold hover:bg-red-600 transition-colors"
                     >
                       Hapus
@@ -1343,6 +1375,145 @@ function TransferModal({ initial, wallets, onSave, onClose }) {
               className="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 disabled:opacity-50
                          text-white text-sm font-semibold shadow-sm shadow-sky-500/20 transition-all duration-150 active:scale-[0.98]">
               {initial ? 'Simpan perubahan' : 'Transfer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════ MODAL HAPUS DOMPET ═══════════════════ */
+function DeleteWalletModal({ wallet, relatedCount, transferCount, otherWallets, onClose, onConfirm }) {
+  const [mode, setMode] = useState(otherWallets.length > 0 ? 'move' : 'orphan')
+  const [targetId, setTargetId] = useState(otherWallets[0]?.id || '')
+  const canConfirm = mode !== 'move' || !!targetId
+
+  const submit = (e) => {
+    e.preventDefault()
+    if (!canConfirm) return
+    onConfirm(mode === 'move' ? { mode: 'move', targetWalletId: targetId } : { mode })
+  }
+
+  const txLabel = relatedCount - transferCount
+
+  return (
+    <div className="modal-overlay flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="modal-content w-full max-w-md bg-surface rounded-2xl border border-border/60 shadow-xl p-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-2.5 mb-4">
+          <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-4.5 h-4.5 text-red-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-text leading-tight">Hapus dompet?</h3>
+            <p className="text-[11px] text-text-muted mt-0.5">Tindakan ini tidak bisa dibatalkan.</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors shrink-0" aria-label="Tutup">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-muted border border-border/50 mb-4">
+          <span
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 shadow-sm"
+            style={{ backgroundColor: wallet.color }}
+          >
+            {wallet.emoji}
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-text truncate">{wallet.name}</p>
+            <p className="text-[10px] text-text-muted">
+              {txLabel > 0 && `${txLabel} transaksi`}
+              {txLabel > 0 && transferCount > 0 && ' + '}
+              {transferCount > 0 && `${transferCount} transfer`}
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={submit} className="space-y-2.5">
+          <p className="text-xs font-semibold text-text-secondary">Apa yang dilakukan dengan transaksinya?</p>
+
+          {/* Pindahkan ke dompet lain */}
+          <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors
+                              ${mode === 'move' ? 'border-orange-400 bg-orange-50/50 dark:bg-orange-900/10' : 'border-border bg-surface-muted/40 hover:bg-surface-hover'}
+                              ${otherWallets.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <input
+              type="radio"
+              name="wallet-delete-mode"
+              checked={mode === 'move'}
+              onChange={() => setMode('move')}
+              disabled={otherWallets.length === 0}
+              className="mt-0.5 accent-orange-500 shrink-0"
+            />
+            <span className="flex-1 min-w-0">
+              <span className="block text-xs font-semibold text-text">Pindahkan ke dompet lain</span>
+              {otherWallets.length > 0 ? (
+                mode === 'move' && (
+                  <select
+                    value={targetId}
+                    onChange={(e) => setTargetId(e.target.value)}
+                    className="mt-2 w-full px-2.5 py-1.5 rounded-lg bg-surface border border-border text-xs text-text outline-none focus:border-orange-400 transition-colors"
+                  >
+                    {otherWallets.map(w => (
+                      <option key={w.id} value={w.id}>{w.emoji} {w.name}</option>
+                    ))}
+                  </select>
+                )
+              ) : (
+                <span className="block text-[10px] text-text-muted mt-0.5">Tidak ada dompet lain untuk dipindah</span>
+              )}
+            </span>
+          </label>
+
+          {/* Hapus transaksinya */}
+          <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors
+                              ${mode === 'delete' ? 'border-red-400 bg-red-50/50 dark:bg-red-900/10' : 'border-border bg-surface-muted/40 hover:bg-surface-hover'}`}>
+            <input
+              type="radio"
+              name="wallet-delete-mode"
+              checked={mode === 'delete'}
+              onChange={() => setMode('delete')}
+              className="mt-0.5 accent-red-500 shrink-0"
+            />
+            <span className="flex-1 min-w-0">
+              <span className="block text-xs font-semibold text-text">Hapus transaksi terkait</span>
+              <span className="block text-[10px] text-text-muted mt-0.5">
+                Menghapus {relatedCount} catatan yang memakai dompet ini dari riwayat
+              </span>
+            </span>
+          </label>
+
+          {/* Biarkan tanpa dompet */}
+          <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors
+                              ${mode === 'orphan' ? 'border-orange-400 bg-orange-50/50 dark:bg-orange-900/10' : 'border-border bg-surface-muted/40 hover:bg-surface-hover'}`}>
+            <input
+              type="radio"
+              name="wallet-delete-mode"
+              checked={mode === 'orphan'}
+              onChange={() => setMode('orphan')}
+              className="mt-0.5 accent-orange-500 shrink-0"
+            />
+            <span className="flex-1 min-w-0">
+              <span className="block text-xs font-semibold text-text">Biarkan tanpa dompet</span>
+              <span className="block text-[10px] text-text-muted mt-0.5">
+                Riwayat tetap tersimpan, tapi tidak terhubung ke dompet mana pun
+              </span>
+            </span>
+          </label>
+
+          <div className="flex items-center gap-2 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl bg-surface-muted text-text-muted hover:text-text text-sm font-medium transition-colors">
+              Batal
+            </button>
+            <button type="submit" disabled={!canConfirm}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-50
+                         text-white text-sm font-semibold shadow-sm shadow-red-500/20 transition-all duration-150 active:scale-[0.98]">
+              <Trash2 className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+              Hapus dompet
             </button>
           </div>
         </form>

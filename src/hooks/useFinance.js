@@ -201,11 +201,58 @@ export function useFinance({ userId } = {}) {
     }))
   }, [commit])
 
-  const deleteWallet = useCallback((id) => {
-    commit(prev => ({
-      ...prev,
-      wallets: (prev.wallets || []).filter(w => w.id !== id),
-    }))
+  /**
+   * Hapus dompet. Transaksi terkait ditangani sesuai opsi:
+   * - { mode: 'move', targetWalletId }  → pindahkan semua transaksi & transfer ke dompet lain
+   * - { mode: 'delete' }                → hapus transaksi terkait sekalian
+   * - { mode: 'orphan' } (default)      → biarkan transaksi tersimpan tanpa dompet
+   */
+  const deleteWallet = useCallback((id, options = {}) => {
+    const { mode = 'orphan', targetWalletId = null } = options
+    const now = new Date().toISOString()
+    commit(prev => {
+      let transactions = prev.transactions || []
+      if (mode === 'delete') {
+        transactions = transactions.filter(t =>
+          t.walletId !== id && t.fromWalletId !== id && t.toWalletId !== id
+        )
+      } else if (mode === 'move' && targetWalletId && targetWalletId !== id) {
+        const moved = []
+        for (const t of transactions) {
+          let changed = false
+          const next = { ...t }
+          if (t.walletId === id) {
+            next.walletId = targetWalletId
+            changed = true
+          }
+          if (t.type === 'transfer') {
+            if (t.fromWalletId === id) {
+              next.fromWalletId = targetWalletId
+              changed = true
+            }
+            if (t.toWalletId === id) {
+              next.toWalletId = targetWalletId
+              changed = true
+            }
+          }
+          // Transfer yang kedua ujungnya jadi sama (mis. A→B dipindah ke B) = no-op:
+          // uang tidak pernah berpindah, hapus agar riwayat tetap akurat.
+          if (next.type === 'transfer' && next.fromWalletId === next.toWalletId) continue
+          moved.push(changed ? { ...next, updatedAt: now } : t)
+        }
+        transactions = moved
+      } else {
+        // orphan: lepas transaksi pemasukan/pengeluaran dari dompet (tetap tersimpan)
+        transactions = transactions.map(t =>
+          t.walletId === id ? { ...t, walletId: null, updatedAt: now } : t
+        )
+      }
+      return {
+        ...prev,
+        wallets: (prev.wallets || []).filter(w => w.id !== id),
+        transactions,
+      }
+    })
   }, [commit])
 
   // ── Transactions ──

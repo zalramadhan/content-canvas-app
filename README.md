@@ -89,7 +89,7 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 
 ### 💰 Financial Tracker
 - Menu baru **Finance** di navigasi (☰) untuk mengelola keuangan pribadi (mata uang Rupiah)
-- **👛 Dompet** — buat beberapa dompet (Tunai, Bank, E-Wallet) dengan ikon & warna; saldo dihitung otomatis dari transaksi
+- **👛 Dompet** — buat beberapa dompet (Tunai, Bank, E-Wallet) dengan ikon & warna; saldo dihitung otomatis dari transaksi; bisa **diedit** (klik ikon pensil) dan **dihapus** dengan pilihan penanganan transaksi terkait (pindahkan ke dompet lain / hapus transaksinya / biarkan tanpa dompet)
 - **💸 Pencatatan transaksi** — pemasukan & pengeluaran dengan jumlah, kategori (preset), dompet, tanggal, dan catatan; bisa **diedit** (klik ikon pensil)
 - **🔄 Transfer antar dompet** — pindahkan uang antar dompet (tombol Transfer); tidak dihitung sebagai pemasukan/pengeluaran, tapi saldo kedua dompet ikut berubah
 - **🎯 Budget bulanan** — batas pengeluaran per kategori per bulan, progress bar + peringatan merah jika melebihi
