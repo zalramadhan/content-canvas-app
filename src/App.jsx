@@ -10,6 +10,7 @@ import {
   Menu, LayoutDashboard, Sun, Moon, X,
   Loader2, LogOut, Cloud, CloudCheck, CloudOff,
   Search, Sparkles, Undo2, Redo2, LayoutGrid, CheckCircle2, User, Wallet, StickyNote,
+  ChevronDown, ChevronRight,
 } from 'lucide-react'
 import Calendar from './components/Calendar'
 import DaySidebar from './components/DaySidebar'
@@ -123,6 +124,7 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [menuOpen, setMenuOpen] = useState(false)
+  const [ccCollapsed, setCcCollapsed] = useState(false) // grup "Content Creator" di-collapse manual
   const [activeView, setActiveView] = useState('calendar') // 'calendar' | 'kanban' | 'dashboard' | 'habits' | 'finance' | 'notes'
   const [searchOpen, setSearchOpen] = useState(false)
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false)
@@ -290,14 +292,22 @@ function App() {
     },
   }[syncState.status] || { icon: <Cloud className="w-3 h-3 text-text-muted" />, label: '', cls: 'text-text-muted' }
 
-  const navItems = [
+  // Sub-menu grup "Content Creator" (Calendar / Kanban / Dashboard)
+  const contentCreatorItems = [
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
     { id: 'kanban', label: 'Kanban', icon: LayoutGrid },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  ]
+  // Menu di luar grup Content Creator
+  const otherItems = [
     { id: 'habits', label: 'Habits', icon: CheckCircle2 },
     { id: 'finance', label: 'Finance', icon: Wallet },
     { id: 'notes', label: 'Notes & Todo', icon: StickyNote },
   ]
+
+  // Grup bisa di-collapse manual kapan saja; header tetap menyala oranye saat salah satu sub-menunya aktif
+  const ccActive = contentCreatorItems.some(item => item.id === activeView)
+  const ccOpen = !ccCollapsed
 
   return (
     <div className="min-h-screen bg-bg-page">
@@ -644,23 +654,63 @@ function App() {
             <div className="flex-1 p-3 space-y-4 overflow-y-auto">
               {/* Navigation */}
               <div className="space-y-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon
-                  const active = activeView === item.id
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => { setActiveView(item.id); setMenuOpen(false) }}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                                  ${active
-                                    ? 'bg-orange-500 text-white'
-                                    : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {item.label}
-                    </button>
-                  )
-                })}
+                {/* Grup: Content Creator */}
+                <button
+                  onClick={() => setCcCollapsed(c => !c)}
+                  aria-expanded={ccOpen}
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors
+                              ${ccActive
+                                ? 'text-orange-500'
+                                : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <PenSquare className="w-4 h-4 shrink-0" />
+                    Content Creator
+                  </span>
+                  {ccOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+                </button>
+                {ccOpen && (
+                  <div className="ml-4 pl-3 border-l border-border-light space-y-1">
+                    {contentCreatorItems.map((item) => {
+                      const Icon = item.icon
+                      const active = activeView === item.id
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => { setActiveView(item.id); setMenuOpen(false) }}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors
+                                      ${active
+                                        ? 'bg-orange-500 text-white'
+                                        : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {item.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Menu lain di luar grup (dipisah garis tipis) */}
+                <div className="mt-1 pt-2 border-t border-border-light/60 space-y-1">
+                  {otherItems.map((item) => {
+                    const Icon = item.icon
+                    const active = activeView === item.id
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => { setActiveView(item.id); setMenuOpen(false) }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                                    ${active
+                                      ? 'bg-orange-500 text-white'
+                                      : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
               {/* Search */}

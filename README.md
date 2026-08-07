@@ -109,7 +109,7 @@ Klik hari mana pun untuk membuka panel perencanaan lengkap:
 - Avatar & nama tampil di menu hamburger dan mengikuti akun di mana pun kamu login
 
 ### 🌗 Lainnya
-- **Menu hamburger** (☰) berisi: navigasi (Calendar/Kanban/Dashboard/**Habits**/**Finance**/**Notes & Todo**), search, ekspor, **dark/light mode**, dan logout — tersedia di semua ukuran layar; navigasi kini hanya lewat hamburger (header tetap bersih)
+- **Menu hamburger** (☰) berisi: navigasi — **Calendar, Kanban, Dashboard** dikelompokkan dalam sub-menu **Content Creator** (bisa di-collapse), plus **Habits**, **Finance**, dan **Notes & Todo** — lalu search, ekspor, **dark/light mode**, dan logout; tersedia di semua ukuran layar, navigasi kini hanya lewat hamburger (header tetap bersih)
 - Notifikasi, Undo/Redo, dan AI Assistant selalu terlihat di navbar
 - Dark mode (otomatis ikut sistem + bisa diubah manual dari menu hamburger)
 - PWA — bisa **di-install** ke layar beranda HP seperti aplikasi native
