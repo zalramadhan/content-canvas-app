@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Check, Loader2, User, Mail, ShieldCheck, AlertCircle, Save } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -42,7 +42,6 @@ export default function ProfileSettings({ user, onClose }) {
         setError(err.message)
       } else {
         setSaved(true)
-        setTimeout(onClose, 900)
       }
     } catch {
       setError('Terjadi kesalahan jaringan. Coba lagi.')
@@ -50,6 +49,13 @@ export default function ProfileSettings({ user, onClose }) {
       setSaving(false)
     }
   }
+
+  // Tutup otomatis beberapa saat setelah tersimpan (dengan cleanup aman)
+  useEffect(() => {
+    if (!saved) return
+    const t = setTimeout(onClose, 1400)
+    return () => clearTimeout(t)
+  }, [saved, onClose])
 
   return (
     <div className="modal-overlay flex items-center justify-center p-4" onClick={onClose}>
