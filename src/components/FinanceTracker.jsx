@@ -463,7 +463,11 @@ function TransactionsTab({ monthTx, wallets, walletById, onAdd, onEdit, onDelete
   const [catFilter, setCatFilter] = useState('all')
   const [walletFilter, setWalletFilter] = useState('all')
 
-  const cats = useMemo(() => ['all', ...new Set(monthTx.map(t => t.category))], [monthTx])
+  // Filter undefined (transfer tidak punya kategori) agar tidak muncul opsi kosong
+  const cats = useMemo(
+    () => ['all', ...new Set(monthTx.map(t => t.category).filter(Boolean))],
+    [monthTx]
+  )
 
   // Reset filter jika nilainya tidak lagi tersedia (pindah bulan / dompet dihapus)
   useEffect(() => {
@@ -789,7 +793,11 @@ function TransactionModal({ initial, wallets, onSave, onClose }) {
   const [type, setType] = useState(initial?.type || 'expense')
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
   const [category, setCategory] = useState(initial?.category || (type === 'income' ? 'Gaji' : 'Makanan'))
-  const [walletId, setWalletId] = useState(initial?.walletId || wallets[0]?.id || '')
+  const [walletId, setWalletId] = useState(
+    (initial?.walletId && wallets.some(w => w.id === initial.walletId))
+      ? initial.walletId
+      : wallets[0]?.id || ''
+  )
   const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState(initial?.note || '')
 
@@ -1142,7 +1150,9 @@ function TransferModal({ initial, wallets, onSave, onClose }) {
   const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState(initial?.note || '')
 
-  const canSubmit = fromId && toId && fromId !== toId && Number(amount) > 0
+  const canSubmit =
+    fromId && toId && fromId !== toId && Number(amount) > 0 &&
+    wallets.some(w => w.id === fromId) && wallets.some(w => w.id === toId)
 
   const swap = () => {
     setFromId(toId)
